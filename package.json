@@ -1,7 +1,7 @@
 {
   "name": "omnichat",
   "version": "0.0.1",
-  "description": "An example chat site using the Omni messaging system https://github.com/ApexDevelopment/Omni",
+  "description": "An example chat site using the Omni messaging system https://github.com/Skid-Team-6/Omni",
   "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -9,16 +9,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ApexDevelopment/Omnichat.git"
+    "url": "git+https://github.com/Skid-Team-6/Omnichat.git"
   },
   "author": "",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/ApexDevelopment/Omnichat/issues"
+    "url": "https://github.com/Skid-Team-6/Omnichat/issues"
   },
-  "homepage": "https://github.com/ApexDevelopment/Omnichat#readme",
+  "homepage": "https://github.com/Skid-Team-6/Omnichat#readme",
   "dependencies": {
     "express": "^4.18.2",
-    "omni": "github:ApexDevelopment/Omni"
+    "omni": "github:Skid-Team-6/Omni"
   }
 }
