@@ -1,12 +1,12 @@
+const omni = require("omni");
 const express = require("express");
 const app = express();
 const port = 80;
 
-const omni = require("omni");
+const path = require("path");
+const public_directory = path.join(__dirname, "public");
 
-app.get("/", (req, res) => {
-	  res.send("Coming soon!™");
-});
+app.use(express.static(public_directory));
 
 app.listen(port, () => {
 	console.log(`Server started at port ${port}`);
