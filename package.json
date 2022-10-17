@@ -19,6 +19,7 @@
   "homepage": "https://github.com/Skid-Team-6/Omnichat#readme",
   "dependencies": {
     "express": "^4.18.2",
-    "omni": "github:Skid-Team-6/Omni"
+    "omni": "github:Skid-Team-6/Omni",
+    "socket.io": "^4.5.3"
   }
 }
