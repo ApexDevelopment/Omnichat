@@ -13,12 +13,15 @@ const public_directory = path.join(__dirname, "public");
 app.use(express.static(public_directory));
 
 omni.on("message", (data) => {
-	// TODO: rearchitect to use socket.broadcast.emit maybe?
 	io.emit("msg_rcv", data);
 });
 
 omni.on("user_online", (data) => {
 	io.emit("user_online", data);
+});
+
+omni.on("user_offline", (data) => {
+	io.emit("user_offline", data);
 });
 
 omni.on("channel_create", (data) => {
@@ -36,6 +39,7 @@ io.on("connection", (socket) => {
 
 	socket.on("disconnect", () => {
 		console.log("User disconnected!", user_id);
+		omni.logout_user(user_id);
 	});
 
 	socket.on("msg_send", (data) => {

@@ -32,15 +32,25 @@ socket.on("connect_error", (err) => {
 
 socket.on("user_online", (data) => {
 	online_users[data.id] = data;
-	let user = document.createElement("li");
+	let user = document.createElement("div");
 	user.classList.add("user");
+	user.attributes["user-id"] = data.id;
 	user.innerText = data.username;
 	user_list.appendChild(user);
-	window.scrollTo(0, document.body.scrollHeight);
+});
+
+socket.on("user_offline", (data) => {
+	if (!online_users[data.id]) {
+		return;
+	}
+
+	delete online_users[data.id];
+	let user = document.querySelector(`.user[user-id="${data.id}"]`);
+	user_list.removeChild(user);
 });
 
 socket.on("msg_rcv", (data) => {
-	let message = document.createElement("li");
+	let message = document.createElement("div");
 	message.textContent = online_users[data.user_id].username + ": " + data.content;
 	messages.appendChild(message);
 	window.scrollTo(0, document.body.scrollHeight);

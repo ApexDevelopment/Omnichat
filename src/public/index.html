@@ -9,28 +9,27 @@
 	<script src="https://cdn.socket.io/4.5.3/socket.io.min.js"></script>
 </head>
 <body>
-	<h1>This isn't ready yet!</h1>
 	<div id="app-container">
 		<div id="main-content">
 			<div id="channel-list" class="layoutpanel">
 				<strong>Channels</strong>
-				<ul id="channels"></ul>
+				<div id="channels"></div>
 			</div>
 			<div id="message-pane" class="layoutpanel">
 				<div id="messages-list">
 					<strong>Messages</strong>
-					<ul id="messages"></ul>
+					<div id="messages"></div>
 				</div>
 				<div id="message-box">
 					<form id="message-form" action="">
 						<input type="text" id="message-input" autocomplete="off" placeholder="Type your message here">
-						<button type="submit">Send</button>
+						<button type="submit" id="send-button">Send</button>
 					</form>
 				</div>
 			</div>
 			<div id="user-list" class="layoutpanel">
 				<strong>Users</strong>
-				<ul id="users"></ul>
+				<div id="users"></div>
 			</div>
 		</div>
 	</div>
