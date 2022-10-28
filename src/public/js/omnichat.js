@@ -1,8 +1,10 @@
 let socket = io();
 
+let online_users = {};
 const form = document.getElementById("message-form");
 const input = document.getElementById("message-input");
-	const messages = document.getElementById("messages");
+const messages = document.getElementById("messages");
+const user_list = document.getElementById("user-list");
 
 form.addEventListener("submit", (e) => {
 	e.preventDefault();
@@ -28,9 +30,18 @@ socket.on("connect_error", (err) => {
 	console.log("Connection error: " + err);
 });
 
+socket.on("user_online", (data) => {
+	online_users[data.id] = data;
+	let user = document.createElement("li");
+	user.classList.add("user");
+	user.innerText = data.username;
+	user_list.appendChild(user);
+	window.scrollTo(0, document.body.scrollHeight);
+});
+
 socket.on("msg_rcv", (data) => {
 	let message = document.createElement("li");
-	message.textContent = data.message;
+	message.textContent = online_users[data.user_id].username + ": " + data.content;
 	messages.appendChild(message);
 	window.scrollTo(0, document.body.scrollHeight);
 });

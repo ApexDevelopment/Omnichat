@@ -10,14 +10,29 @@
 </head>
 <body>
 	<h1>This isn't ready yet!</h1>
-	<div id="messages-list">
-		<ul id="messages"></ul>
-	</div>
-	<div id="message-box">
-		<form id="message-form" action="">
-			<input type="text" id="message-input" autocomplete="off" placeholder="Type your message here">
-			<button type="submit">Send</button>
-		</form>
+	<div id="app-container">
+		<div id="main-content">
+			<div id="channel-list" class="layoutpanel">
+				<strong>Channels</strong>
+				<ul id="channels"></ul>
+			</div>
+			<div id="message-pane" class="layoutpanel">
+				<div id="messages-list">
+					<strong>Messages</strong>
+					<ul id="messages"></ul>
+				</div>
+				<div id="message-box">
+					<form id="message-form" action="">
+						<input type="text" id="message-input" autocomplete="off" placeholder="Type your message here">
+						<button type="submit">Send</button>
+					</form>
+				</div>
+			</div>
+			<div id="user-list" class="layoutpanel">
+				<strong>Users</strong>
+				<ul id="users"></ul>
+			</div>
+		</div>
 	</div>
 	<script src="js/omnichat.js" defer></script>
 </body>
