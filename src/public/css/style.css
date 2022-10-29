@@ -1,6 +1,12 @@
+* {
+	color: white;
+	font-family: 'Open Sans', sans-serif;
+}
+
 html, body {
 	margin: 0;
 	height: 100%;
+	background-color: rgb(24, 26, 27);
 }
 
 #app-container {
@@ -38,10 +44,27 @@ html, body {
 
 #message-input {
 	width: 100%;
+	padding: 4px;
+	background-color: rgb(24, 26, 27);
+	border-top-style: hidden;
+	border-right-style: hidden;
+	border-left-style: hidden;
+	border-bottom: 1px solid rgb(158, 44, 44);
+	border-radius: 5px;
+	outline: none;
+}
+
+#message-input:focus {
+	background-color: rgb(43, 43, 43);
+	outline: none;
 }
 
 #send-button {
 	width: 100px;
+	background-color: rgb(24, 26, 27);
+	border-style: hidden;
+	border-radius: 5px;
+	outline: none;
 }
 
 #user-list {
@@ -53,7 +76,7 @@ html, body {
 }
 
 .layoutpanel {
-	background-color: rgb(25, 25, 25);
+	background-color: rgb(12, 12, 12);
 	border: 1px solid rgb(50, 50, 50);
 	border-radius: 5px;
 	padding: 10px;
