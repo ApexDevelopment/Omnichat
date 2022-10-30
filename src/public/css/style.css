@@ -82,6 +82,13 @@ html, body {
 	padding: 10px;
 }
 
-li {
-	list-style-type: none;
+.error {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	background-color: rgb(189, 27, 36);
+	color: white;
+	text-align: center;
+	padding: 10px;
 }

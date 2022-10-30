@@ -17,6 +17,31 @@ form.addEventListener("submit", (e) => {
 	}
 });
 
+function display_error(message) {
+	let error_div = document.createElement("div");
+	error_div.classList.add("error");
+	error_div.innerText = message;
+	// Add close button
+	let close_button = document.createElement("button");
+	close_button.innerText = "X";
+	close_button.style.float = "right";
+	close_button.style.marginRight = "10px";
+	close_button.style.backgroundColor = "transparent";
+	close_button.style.border = "none";
+	close_button.style.color = "white";
+	close_button.addEventListener("click", () => {
+		error_div.remove();
+	});
+	error_div.appendChild(close_button);
+	document.body.appendChild(error_div);
+	
+	setTimeout(() => {
+		if (error_div.parentElement) {
+			error_div.remove();
+		}
+	}, 5000);
+}
+
 // TODO: User feedback on connect/disconnect/error
 socket.on("connect", () => {
 	console.log("Connected to server.");
@@ -24,13 +49,19 @@ socket.on("connect", () => {
 
 socket.on("disconnect", (reason) => {
 	console.log(`Disconnected from server. Reason: ${reason}`);
+	display_error(`Lost connection to server. Reason: ${reason}`);
 });
 
 socket.on("connect_error", (err) => {
-	console.log("Connection error: " + err);
+	console.log(`Connection error: ${err}`);
+	display_error(`Connection error: ${err}`);
 });
 
 socket.on("user_online", (data) => {
+	if (online_users[data.id]) {
+		return;
+	}
+
 	online_users[data.id] = data;
 	let user = document.createElement("div");
 	user.classList.add("user");

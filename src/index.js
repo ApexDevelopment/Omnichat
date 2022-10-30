@@ -37,6 +37,11 @@ io.on("connection", (socket) => {
 	omni.login_user(user_id);
 	console.log("New user connection!", user_id);
 
+	// Send the user a list of all online users
+	for (let user_id of omni.get_all_online_users()) {
+		socket.emit("user_online", omni.get_user(user_id));
+	}
+
 	socket.on("disconnect", () => {
 		console.log("User disconnected!", user_id);
 		omni.logout_user(user_id);
