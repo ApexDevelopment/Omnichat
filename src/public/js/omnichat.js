@@ -1,16 +1,19 @@
 let socket = io();
 
+let current_channel_id = null;
 let online_users = {};
 const form = document.getElementById("message-form");
 const input = document.getElementById("message-input");
 const messages = document.getElementById("messages");
 const user_list = document.getElementById("user-list");
+const channel_list = document.getElementById("channel-list");
 
 form.addEventListener("submit", (e) => {
 	e.preventDefault();
-	if (input.value) {
+	if (input.value && current_channel_id) {
 		socket.emit("msg_send", {
-			message: input.value
+			message: input.value,
+			channel_id: current_channel_id
 		});
 		
 		input.value = "";
@@ -65,7 +68,7 @@ socket.on("user_online", (data) => {
 	online_users[data.id] = data;
 	let user = document.createElement("div");
 	user.classList.add("user");
-	user.attributes["user-id"] = data.id;
+	user.setAttribute("user-id", data.id);
 	user.innerText = data.username;
 	user_list.appendChild(user);
 });
@@ -81,8 +84,50 @@ socket.on("user_offline", (data) => {
 });
 
 socket.on("msg_rcv", (data) => {
+	if (data.channel_id != current_channel_id) {
+		// TODO: Store messages for channels that aren't currently open
+		return;
+	}
+
+	if (!online_users[data.user_id]) {
+		// TODO: Resolve usernames of offline users
+		return;
+	}
+
 	let message = document.createElement("div");
 	message.textContent = online_users[data.user_id].username + ": " + data.content;
 	messages.appendChild(message);
-	window.scrollTo(0, document.body.scrollHeight);
+	// FIXME: Scroll not working
+	messages.scrollTo(0, messages.scrollHeight);
+});
+
+socket.on("channel_create", (data) => {
+	console.log("Channel added: " + data.name + " (" + data.id + ")");
+
+	let channel = document.createElement("div");
+	channel.classList.add("channel");
+	channel.setAttribute("channel-id", data.id);
+	channel.innerText = data.name;
+	channel_list.appendChild(channel);
+
+	channel.addEventListener("click", () => {
+		// Mark old channel as not selected
+		if (current_channel_id) {
+			let current_channel = document.querySelector(`.channel[channel-id="${current_channel_id}"]`);
+			console.log(current_channel, current_channel_id);
+			if (current_channel) current_channel.classList.remove("selected");
+		}
+
+		// Mark this channel as selected
+		channel.classList.add("selected");
+		current_channel_id = data.id;
+	
+		// Clear message pane
+		messages.innerHTML = "";
+
+		// Ask server for messages
+		socket.emit("channel_join", {
+			channel_id: data.id
+		});
+	});
 });

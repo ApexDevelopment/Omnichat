@@ -28,8 +28,9 @@ omni.on("channel_create", (data) => {
 	io.emit("channel_create", data);
 });
 
-// TEMP: Make a test channel
-const channel_id = omni.create_channel("TestChannel");
+// TEMP: Make a couple test channels
+omni.create_channel("TestChannel");
+omni.create_channel("TestChannel2");
 
 io.on("connection", (socket) => {
 	// TEMP: Make a new user
@@ -42,6 +43,11 @@ io.on("connection", (socket) => {
 		socket.emit("user_online", omni.get_user(user_id));
 	}
 
+	// Send the user a list of all channels
+	for (let channel_id of omni.get_all_channels()) {
+		socket.emit("channel_create", omni.get_channel(channel_id));
+	}
+
 	socket.on("disconnect", () => {
 		console.log("User disconnected!", user_id);
 		omni.logout_user(user_id);
@@ -49,11 +55,17 @@ io.on("connection", (socket) => {
 
 	socket.on("msg_send", (data) => {
 		console.log("Message received: " + data.message);
-		omni.send_message(user_id, channel_id, data.message);
+		omni.send_message(user_id, data.channel_id, data.message);
+	});
+
+	socket.on("channel_join", (data) => {
+		console.log("User " + user_id + " joined channel " + data.channel_id);
+		// Send user the last 50 messages
+		for (let message of omni.get_messages(data.channel_id, Date.now())) {
+			socket.emit("msg_rcv", message);
+		}
 	});
 });
-
-
 
 server.listen(port, () => {
 	console.log(`Server started at port ${port}`);

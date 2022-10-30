@@ -35,6 +35,7 @@ html, body {
 
 #messages-list {
 	height: 100%;
+	overflow-y: auto;
 }
 
 #message-form {
@@ -73,6 +74,18 @@ html, body {
 
 #channel-list {
 	flex-grow: 1;
+}
+
+#channel-list .channel {
+	padding: 5px;
+}
+
+#channel-list .channel:hover {
+	background-color: rgb(158, 44, 44);
+}
+
+.selected {
+	background-color: rgb(158, 44, 44);
 }
 
 .layoutpanel {
