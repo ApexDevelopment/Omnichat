@@ -60,54 +60,57 @@ socket.on("connect_error", (err) => {
 	display_error(`Connection error: ${err}`);
 });
 
-socket.on("user_online", (data) => {
-	if (online_users[data.id]) {
+socket.on("user_online", (user) => {
+	if (online_users[user.id]) {
 		return;
 	}
 
-	online_users[data.id] = data;
-	let user = document.createElement("div");
-	user.classList.add("user");
-	user.setAttribute("user-id", data.id);
-	user.innerText = data.username;
-	user_list.appendChild(user);
+	online_users[user.id] = user;
+	let user_element = document.createElement("div");
+	user_element.classList.add("user");
+	user_element.setAttribute("user-id", user.id);
+	user_element.innerText = user.attributes.username;
+	user_list.appendChild(user_element);
 });
 
-socket.on("user_offline", (data) => {
-	if (!online_users[data.id]) {
+socket.on("user_offline", (user) => {
+	if (!online_users[user.id]) {
 		return;
 	}
 
-	delete online_users[data.id];
-	let user = document.querySelector(`.user[user-id="${data.id}"]`);
-	user_list.removeChild(user);
+	delete online_users[user.id];
+	let user_element = document.querySelector(`.user[user-id="${user.id}"]`);
+	user_list.removeChild(user_element);
 });
 
 socket.on("msg_rcv", (data) => {
-	if (data.channel_id != current_channel_id) {
+	console.log("Received message:", data);
+	if (data.relationships.channel.data.id != current_channel_id) {
 		// TODO: Store messages for channels that aren't currently open
 		return;
 	}
 
-	if (!online_users[data.user_id]) {
+	const user_id = data.relationships.user.id;
+
+	if (!online_users[user_id]) {
 		// TODO: Resolve usernames of offline users
 		return;
 	}
 
 	let message = document.createElement("div");
-	message.textContent = online_users[data.user_id].username + ": " + data.content;
+	message.textContent = online_users[user_id].username + ": " + data.attributes.content;
 	messages.appendChild(message);
 	// FIXME: Scroll not working
 	messages.scrollTo(0, messages.scrollHeight);
 });
 
 socket.on("channel_create", (data) => {
-	console.log("Channel added: " + data.name + " (" + data.id + ")");
+	console.log("Channel added: " + data.attributes.name + " (" + data.id + ")");
 
 	let channel = document.createElement("div");
 	channel.classList.add("channel");
 	channel.setAttribute("channel-id", data.id);
-	channel.innerText = data.name;
+	channel.innerText = data.attributes.name;
 	channel_list.appendChild(channel);
 
 	channel.addEventListener("click", () => {

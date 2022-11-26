@@ -5,7 +5,9 @@
   "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start-dev": "node src/index.js"
+    "start-dev": "node src/index.js",
+	"copy-omni-win": "xcopy ..\\Omni\\src\\* node_modules\\omni\\src\\ /Y",
+	"copy-omni-linux": "cp ../Omni/src/* node_modules/omni/src/ -r"
   },
   "repository": {
     "type": "git",
