@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Omnichat</title>
+	<link rel="stylesheet" href="css/style.css">
+	<script src="https://cdn.socket.io/4.5.3/socket.io.min.js"></script>
+</head>
+<body>
+	<div id="app-container">
+		<div id="main-content" class="distribute-row">
+			<div id="channel-list" class="layoutpanel">
+				<strong>Channels</strong>
+				<div id="channels"></div>
+			</div>
+			<div id="message-pane" class="layoutpanel">
+				<div id="messages-list">
+					<strong>Messages</strong>
+					<div id="messages"></div>
+				</div>
+				<div id="message-box">
+					<form id="message-form" action="">
+						<input type="text" id="message-input" autocomplete="off" placeholder="Type your message here...">
+						<button type="submit" id="send-button">Send</button>
+					</form>
+				</div>
+			</div>
+			<div id="user-list" class="layoutpanel">
+				<strong>Users</strong>
+				<div id="users"></div>
+			</div>
+		</div>
+	</div>
+	<script src="js/omnichat.js" defer></script>
+</body>
+</html>

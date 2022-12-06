@@ -8,6 +8,35 @@ const messages = document.getElementById("messages");
 const user_list = document.getElementById("user-list");
 const channel_list = document.getElementById("channel-list");
 
+let user_cache = {};
+let message_cache = {};
+
+function add_to_message_cache(message) {
+	const channel_id = message.relationships.channel.data.id;
+
+	if (!message_cache[channel_id]) {
+		message_cache[channel_id] = [];
+	}
+
+	message_cache[channel_id].push(message);
+}
+
+function does_message_cache_contain(message) {
+	const channel_id = message.relationships.channel.data.id;
+
+	if (!message_cache[channel_id]) {
+		return false;
+	}
+
+	for (let cached_message of message_cache[channel_id]) {
+		if (cached_message.id === message.id) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 form.addEventListener("submit", (e) => {
 	e.preventDefault();
 	if (input.value && current_channel_id) {
@@ -65,7 +94,8 @@ socket.on("user_online", (user) => {
 		return;
 	}
 
-	online_users[user.id] = user;
+	online_users[user.id] = true;
+	user_cache[user.id] = user;
 	let user_element = document.createElement("div");
 	user_element.classList.add("user");
 	user_element.setAttribute("user-id", user.id);
@@ -83,25 +113,30 @@ socket.on("user_offline", (user) => {
 	user_list.removeChild(user_element);
 });
 
-socket.on("msg_rcv", (data) => {
-	console.log("Received message:", data);
-	if (data.relationships.channel.data.id != current_channel_id) {
-		// TODO: Store messages for channels that aren't currently open
-		return;
-	}
-
-	const user_id = data.relationships.user.id;
-
-	if (!online_users[user_id]) {
-		// TODO: Resolve usernames of offline users
-		return;
-	}
-
+function display_message(user_id, content) {
 	let message = document.createElement("div");
-	message.textContent = online_users[user_id].username + ": " + data.attributes.content;
+	message.textContent = user_cache[user_id].attributes.username + ": " + content;
 	messages.appendChild(message);
 	// FIXME: Scroll not working
 	messages.scrollTo(0, messages.scrollHeight);
+}
+
+socket.on("msg_rcv", (data) => {
+	console.log("Received message:", data);
+
+	if (does_message_cache_contain(data)) {
+		return;
+	}
+
+	add_to_message_cache(data);
+
+	if (data.relationships.channel.data.id != current_channel_id) {
+		return;
+	}
+
+	const user_id = data.relationships.user.data.id;
+	const content = data.attributes.content;
+	display_message(user_id, content);
 });
 
 socket.on("channel_create", (data) => {
@@ -128,9 +163,19 @@ socket.on("channel_create", (data) => {
 		// Clear message pane
 		messages.innerHTML = "";
 
-		// Ask server for messages
-		socket.emit("channel_join", {
-			channel_id: data.id
-		});
+		// Display messages
+		if (message_cache[current_channel_id]) {
+			for (let message of message_cache[current_channel_id]) {
+				const user_id = message.relationships.user.data.id;
+				const content = message.attributes.content;
+				display_message(user_id, content);
+			}
+		}
+		else {
+			// Ask server for missed messages
+			socket.emit("channel_join", {
+				channel_id: data.id
+			});
+		}
 	});
 });

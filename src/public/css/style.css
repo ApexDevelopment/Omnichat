@@ -21,21 +21,33 @@ html, body {
 	width: 100%;
 	height: 100%;
 	display: flex;
-	flex-direction: row;
+	gap: 10px;
 	justify-content: center;
 	align-items: stretch;
-	gap: 10px;
+}
+
+.distribute-row {
+	flex-direction: row;
+}
+
+.distribute-column {
+	flex-direction: column;
 }
 
 #message-pane {
 	flex-grow: 3;
 	display: flex;
 	flex-direction: column;
+	max-width: 66%;
 }
 
 #messages-list {
 	height: 100%;
 	overflow-y: auto;
+}
+
+#messages {
+	word-wrap: break-word;
 }
 
 #message-form {

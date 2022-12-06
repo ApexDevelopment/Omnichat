@@ -1,5 +1,6 @@
 {
 	"server_id": "testid",
 	"server_name": "testname",
-	"port": 7777
+	"server_ip": "localhost",
+	"server_port": 7777
 }
