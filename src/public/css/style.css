@@ -1,3 +1,14 @@
+:root {
+	--highlight-color: rgb(158, 44, 44);
+	--background-color: rgb(24, 26, 27);
+	--inset-color: rgb(50, 50, 50);
+	--special-color: rgb(210, 212, 40);
+	--text-color: white;
+	--error-color: rgb(189, 27, 36);
+	--yes-color: rgb(25, 170, 80);
+	--cancel-color: rgb(88, 86, 86);
+}
+
 * {
 	color: white;
 	font-family: 'Open Sans', sans-serif;
@@ -6,7 +17,7 @@
 html, body {
 	margin: 0;
 	height: 100%;
-	background-color: rgb(24, 26, 27);
+	background-color: var(--background-color);
 }
 
 #app-container {
@@ -35,10 +46,11 @@ html, body {
 }
 
 #message-pane {
+	width: 100%;
 	flex-grow: 3;
 	display: flex;
 	flex-direction: column;
-	max-width: 66%;
+	/*max-width: 60%;*/
 }
 
 #messages-list {
@@ -50,6 +62,36 @@ html, body {
 	word-wrap: break-word;
 }
 
+.username {
+	color: var(--special-color);
+	font-weight: bold;
+	padding: 5px 0 5px 0;
+}
+
+.message {
+	padding: 5px;
+	border-radius: 6px;
+}
+
+.message:hover {
+	background-color: var(--background-color);
+}
+
+.message-content {
+	padding: 5px;
+}
+
+.message>.timestamp {
+	display: none;
+	float: right;
+	font-size: 0.8em;
+	color: var(--cancel-color);
+}
+
+.message:hover>.timestamp {
+	display: inline;
+}
+
 #message-form {
 	display: flex;
 	gap: 10px;
@@ -57,54 +99,67 @@ html, body {
 
 #message-input {
 	width: 100%;
-	padding: 4px;
-	background-color: rgb(24, 26, 27);
+	padding: 10px;
+	background-color: var(--inset-color);
 	border-top-style: hidden;
 	border-right-style: hidden;
 	border-left-style: hidden;
-	border-bottom: 1px solid rgb(158, 44, 44);
-	border-radius: 5px;
+	border: 1px solid var(--background-color);
+	border-radius: 6px;
 	outline: none;
 }
 
 #message-input:focus {
-	background-color: rgb(43, 43, 43);
 	outline: none;
 }
 
 #send-button {
 	width: 100px;
-	background-color: rgb(24, 26, 27);
+	background-color: var(--yes-color);
 	border-style: hidden;
-	border-radius: 5px;
+	border-radius: 6px;
 	outline: none;
+	cursor: pointer;
+}
+
+#send-button[disabled] {
+	background-color: var(--cancel-color);
+	cursor: not-allowed;
 }
 
 #user-list {
 	flex-grow: 1;
+	min-width: 20%;
 }
 
 #channel-list {
 	flex-grow: 1;
+	min-width: 20%;
 }
 
 #channel-list .channel {
 	padding: 5px;
+	border-radius: 6px;
 }
 
 #channel-list .channel:hover {
-	background-color: rgb(158, 44, 44);
+	background-color: var(--highlight-color);
 }
 
 .selected {
-	background-color: rgb(158, 44, 44);
+	background-color: var(--highlight-color);
 }
 
 .layoutpanel {
-	background-color: rgb(12, 12, 12);
-	border: 1px solid rgb(50, 50, 50);
-	border-radius: 5px;
+	background-color: var(--inset-color);
+	border-radius: 6px;
 	padding: 10px;
+}
+
+.panel-header {
+	font-size: 1.5em;
+	font-weight: bold;
+	margin-bottom: 10px;
 }
 
 .error {
@@ -112,8 +167,8 @@ html, body {
 	bottom: 0;
 	left: 0;
 	width: 100%;
-	background-color: rgb(189, 27, 36);
-	color: white;
+	background-color: var(--error-color);
+	color: var(--text-color);
 	text-align: center;
 	padding: 10px;
 }

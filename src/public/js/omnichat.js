@@ -4,6 +4,7 @@ let current_channel_id = null;
 let online_users = {};
 const form = document.getElementById("message-form");
 const input = document.getElementById("message-input");
+const send_button = document.getElementById("send-button");
 const messages = document.getElementById("messages");
 const user_list = document.getElementById("user-list");
 const channel_list = document.getElementById("channel-list");
@@ -35,6 +36,24 @@ function does_message_cache_contain(message) {
 	}
 
 	return false;
+}
+
+function get_cookie(name) {
+	let value = "; " + document.cookie;
+	let parts = value.split("; " + name + "=");
+	if (parts.length == 2) return parts.pop().split(";").shift();
+}
+
+function login() {
+	let user_id = get_cookie("user_id");
+
+	if (user_id) {
+		console.log(`Logging in as user ${user_id}`);
+		socket.emit("login", user_id)
+	}
+	else {
+		console.log("Did not find user_id cookie.");
+	}
 }
 
 form.addEventListener("submit", (e) => {
@@ -79,6 +98,10 @@ socket.on("connect", () => {
 	console.log("Connected to server.");
 });
 
+socket.once("login_poke", () => {
+	login();
+});
+
 socket.on("disconnect", (reason) => {
 	console.log(`Disconnected from server. Reason: ${reason}`);
 	display_error(`Lost connection to server. Reason: ${reason}`);
@@ -113,9 +136,54 @@ socket.on("user_offline", (user) => {
 	user_list.removeChild(user_element);
 });
 
-function display_message(user_id, content) {
+socket.on("user_info", (user) => {
+	user_cache[user.id] = user;
+});
+
+function get_username_for_id(user_id) {
+	return new Promise((resolve, reject) => {
+		if (user_cache[user_id]) {
+			resolve(user_cache[user_id].attributes.username);
+		}
+		else {
+			socket.emit("get_user", user_id);
+			const listener = (user) => {
+				if (user.id !== user_id) {
+					return;
+				}
+	
+				socket.off("user_info", listener);
+				resolve(user.attributes.username);
+			}
+	
+			socket.on("user_info", listener);
+		}
+	});
+}
+
+function display_message(user_id, content, timestamp) {
 	let message = document.createElement("div");
-	message.textContent = user_cache[user_id].attributes.username + ": " + content;
+	message.classList.add("message");
+
+	let username = document.createElement("span");
+	username.classList.add("username");
+	username.innerText = user_id;
+	message.appendChild(username);
+
+	get_username_for_id(user_id).then((un) => {
+		username.innerText = un;
+	});
+
+	let message_content = document.createElement("span");
+	message_content.classList.add("message-content");
+	message_content.innerText = content;
+	message.appendChild(message_content);
+
+	let message_timestamp = document.createElement("span");
+	message_timestamp.classList.add("timestamp");
+	message_timestamp.innerText = new Date(timestamp).toLocaleString();
+	message.appendChild(message_timestamp);
+	
 	messages.appendChild(message);
 	// FIXME: Scroll not working
 	messages.scrollTo(0, messages.scrollHeight);
@@ -136,7 +204,8 @@ socket.on("msg_rcv", (data) => {
 
 	const user_id = data.relationships.user.data.id;
 	const content = data.attributes.content;
-	display_message(user_id, content);
+	const timestamp = data.attributes.timestamp;
+	display_message(user_id, content, timestamp);
 });
 
 socket.on("channel_create", (data) => {
@@ -149,6 +218,9 @@ socket.on("channel_create", (data) => {
 	channel_list.appendChild(channel);
 
 	channel.addEventListener("click", () => {
+		input.disabled = false;
+		send_button.disabled = false;
+
 		// Mark old channel as not selected
 		if (current_channel_id) {
 			let current_channel = document.querySelector(`.channel[channel-id="${current_channel_id}"]`);
@@ -168,7 +240,8 @@ socket.on("channel_create", (data) => {
 			for (let message of message_cache[current_channel_id]) {
 				const user_id = message.relationships.user.data.id;
 				const content = message.attributes.content;
-				display_message(user_id, content);
+				const timestamp = message.attributes.timestamp;
+				display_message(user_id, content, timestamp);
 			}
 		}
 		else {
