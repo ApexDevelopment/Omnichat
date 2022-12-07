@@ -8,6 +8,7 @@ const send_button = document.getElementById("send-button");
 const messages = document.getElementById("messages");
 const user_list = document.getElementById("user-list");
 const channel_list = document.getElementById("channel-list");
+const add_channel_button = document.getElementById("add-channel-button");
 
 let this_user = null;
 let user_cache = {};
@@ -57,6 +58,41 @@ function login() {
 	}
 }
 
+function prompt(message) {
+	return new Promise((resolve, reject) => {
+		let prompt_div = document.createElement("div");
+		prompt_div.classList.add("prompt-form");
+		prompt_div.innerText = message;
+		// Add input
+		let input = document.createElement("input");
+		input.classList.add("prompt-input");
+		input.type = "text";
+		prompt_div.appendChild(input);
+		// Add buttons
+		let button_div = document.createElement("div");
+		let ok_button = document.createElement("button");
+		ok_button.classList.add("prompt-button");
+		ok_button.classList.add("yes");
+		ok_button.innerText = "Create";
+		ok_button.addEventListener("click", () => {
+			prompt_div.remove();
+			resolve(input.value);
+		});
+		let cancel_button = document.createElement("button");
+		cancel_button.classList.add("prompt-button");
+		cancel_button.classList.add("cancel");
+		cancel_button.innerText = "Cancel";
+		cancel_button.addEventListener("click", () => {
+			prompt_div.remove();
+			resolve(null);
+		});
+		button_div.appendChild(ok_button);
+		button_div.appendChild(cancel_button);
+		prompt_div.appendChild(button_div);
+		document.body.appendChild(prompt_div);
+	});
+}
+
 form.addEventListener("submit", (e) => {
 	e.preventDefault();
 	if (input.value && current_channel_id) {
@@ -66,6 +102,19 @@ form.addEventListener("submit", (e) => {
 		});
 		
 		input.value = "";
+	}
+});
+
+add_channel_button.addEventListener("click", async (e) => {
+	e.preventDefault();
+	if (this_user && this_user.attributes.admin) {
+		let channel_name = await prompt("Enter channel name");
+		if (channel_name) {
+			socket.emit("channel_create", {
+				name: channel_name,
+				admin_only: false // TODO: Make this a checkbox
+			});
+		}
 	}
 });
 
@@ -115,6 +164,10 @@ socket.on("connect_error", (err) => {
 
 socket.on("my_user", (user) => {
 	this_user = user;
+
+	if (this_user.attributes.admin) {
+		add_channel_button.style.display = "block";
+	}
 });
 
 socket.on("user_online", (user) => {

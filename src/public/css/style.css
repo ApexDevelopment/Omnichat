@@ -146,6 +146,15 @@ html, body {
 	background-color: var(--highlight-color);
 }
 
+#channel-list #add-channel-button {
+	display: none;
+	background-color: var(--yes-color);
+	border-style: hidden;
+	border-radius: 6px;
+	outline: none;
+	cursor: pointer;
+}
+
 .selected {
 	background-color: var(--highlight-color);
 }
@@ -178,4 +187,67 @@ html, body {
 	color: var(--text-color);
 	text-align: center;
 	padding: 10px;
+}
+
+.prompt-form {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	background-color: var(--inset-color);
+	padding: 20px;
+	border-radius: 10px;
+	box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.5);
+	width: 300px;
+	text-align: center;
+	font-size: 20px;
+	font-family: sans-serif;
+	color: var(--text-color);
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	user-select: none;
+	cursor: default;
+}
+
+.prompt-input {
+	width: 100%;
+	padding: 10px;
+	border: none;
+	border-radius: 6px;
+	margin: 10px 0;
+	font-size: 20px;
+	font-family: sans-serif;
+	color: black;
+	outline: none;
+}
+
+.prompt-input:focus {
+	box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.5);
+}
+
+.prompt-button {
+	width: 100%;
+	padding: 10px;
+	border: none;
+	border-radius: 6px;
+	margin: 10px 0;
+	font-size: 20px;
+	font-family: sans-serif;
+	color: var(--text-color);
+	outline: none;
+	cursor: pointer;
+}
+
+.yes {
+	background-color: var(--yes-color);
+}
+
+.cancel {
+	background-color: var(--cancel-color);
+}
+
+.yes:hover {
+	background-color: var(--yes-color);
 }

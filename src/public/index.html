@@ -9,76 +9,21 @@
 	<script src="https://cdn.socket.io/4.5.3/socket.io.min.js"></script>
 	<script src="https://kit.fontawesome.com/ccbca5fa07.js" crossorigin="anonymous"></script>
 	<style>
-		#username-form {
-			position: absolute;
-			top: 50%;
-			left: 50%;
-			transform: translate(-50%, -50%);
-			background-color: var(--inset-color);
-			padding: 20px;
-			border-radius: 10px;
-			box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.5);
-			width: 300px;
-			text-align: center;
-			font-size: 20px;
-			font-family: sans-serif;
-			color: var(--text-color);
-			display: flex;
-			flex-direction: column;
-			justify-content: center;
-			align-items: center;
-			user-select: none;
-			cursor: default;
-		}
-
-		#username-input {
-			width: 100%;
-			padding: 10px;
-			border: none;
-			border-radius: 6px;
-			margin: 10px 0;
-			font-size: 20px;
-			font-family: sans-serif;
-			color: black;
-			outline: none;
-		}
-
-		#username-input:focus {
-			box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.5);
-		}
-
-		#username-submit {
-			width: 100%;
-			padding: 10px;
-			border: none;
-			border-radius: 6px;
-			margin: 10px 0;
-			font-size: 20px;
-			font-family: sans-serif;
-			background-color: var(--yes-color);
-			color: var(--text-color);
-			outline: none;
-			cursor: pointer;
-		}
-
-		#username-submit:hover {
-			background-color: var(--yes-color);
-		}
 	</style>
 </head>
 <body>
 	<div id="app-container">
 		<div id="main-content" class="distribute-column">
 			<div style="text-align: center;">
-				<form id="username-form">
+				<form id="username-form" class="prompt-form">
 					<h1>Welcome to Omnichat!</h1>
 					<p>Enter a username to get started:</p>
-					<input type="text" id="username-input" placeholder="Username" autocomplete="off">
+					<input type="text" id="username-input" class="prompt-input" placeholder="Username" autocomplete="off">
 					<div>
 						<input type="checkbox" id="admin-checkbox" autocomplete="off">
 						<label for="admin-checkbox">(DEMO ONLY) Admin user</label>
 					</div>
-					<button type="submit" id="username-submit">Let's go</button>
+					<button type="submit" id="username-submit" class="prompt-button yes">Let's go</button>
 				</form>
 				<script defer>
 					const username_input = document.getElementById("username-input");

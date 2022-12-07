@@ -50,8 +50,8 @@ async function boot_omni() {
 			res.status(400).send("Username must be at most 32 characters long.");
 			return;
 		}
-		if (!username.match(/^[a-zA-Z0-9_]+$/)) {
-			res.status(400).send("Username must only contain letters, numbers, and underscores.");
+		if (!username.match(/^[a-zA-Z0-9_\-]+$/)) {
+			res.status(400).send("Username must only contain letters, numbers, underscores, and dashes.");
 			return;
 		}
 	
@@ -99,6 +99,19 @@ async function boot_omni() {
 			socket.on("get_user", async (user_id) => {
 				socket.emit("user_info", await omni.get_user(user_id));
 			});
+
+			socket.on("channel_create", async (data) => {
+				if (user.attributes.admin) {
+					// Validate channel name
+					if (!data.name.match(/^[a-zA-Z0-9\-]+$/)) {
+						socket.emit("channel_create_fail", "Channel name must only contain letters, numbers, and dashes.");
+						return;
+					}
+
+					const channel_id = await omni.create_channel(data.name, data.admin_only);
+					console.log(`User ${user_id} created channel ${channel_id}`);
+				}
+			});
 	
 			socket.on("channel_delete", async (channel_id) => {
 				if (user.attributes.admin) {
@@ -129,17 +142,14 @@ async function boot_omni() {
 		socket.emit("login_poke");
 	});
 	
-	async function boot_webserver() {// TEMP: Make a couple test channels
-		await omni.create_channel("general");
-		await omni.create_channel("general-2");
-		await omni.create_channel("admins-only", true);
-		
-		server.listen(port, () => {
-			console.log(`Server started at port ${port}`);
-		});
-	}
+	// DEMO ONLY: Make a couple test channels
+	await omni.create_channel("general");
+	await omni.create_channel("general-2");
+	await omni.create_channel("admins-only", true);
 	
-	boot_webserver();
+	server.listen(port, () => {
+		console.log(`Server started at port ${port}`);
+	});
 }
 
 boot_omni();
