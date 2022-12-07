@@ -34,6 +34,7 @@ omni.on("channel_create", (data) => {
 
 app.post("/api/new_account", async (req, res) => {
 	const username = req.body.username;
+	const admin = req.body.admin ? true : false;
 
 	// Validate username
 	if (username.length < 3) {
@@ -49,7 +50,7 @@ app.post("/api/new_account", async (req, res) => {
 		return;
 	}
 
-	const user_id = await omni.create_user(username);
+	const user_id = await omni.create_user(username, admin);
 
 	if (user_id) {
 		res.status(200).send(user_id);
@@ -66,7 +67,11 @@ io.on("connection", (socket) => {
 		}
 		else {
 			console.log("User login failed!", user_id);
+			socket.emit("login_fail");
+			return;
 		}
+
+		const user = await omni.get_user(user_id);
 
 		socket.on("disconnect", () => {
 			console.log("User disconnected!", user_id);
@@ -74,9 +79,7 @@ io.on("connection", (socket) => {
 		});
 
 		socket.on("msg_send", async (data) => {
-			console.log(`Message received: ${data.message}`);
 			const id_new_msg = await omni.send_message(user_id, data.channel_id, data.message);
-			console.log(`Message sent: ${id_new_msg}`);
 		});
 
 		socket.on("channel_join", async (data) => {
@@ -84,7 +87,6 @@ io.on("connection", (socket) => {
 			// Send user the last 50 messages
 			const messages = await omni.get_messages(data.channel_id, Date.now());
 			for (let message of messages) {
-				console.log(`Sending backlog message: ${message.attributes.content}`);
 				socket.emit("msg_rcv", message);
 			}
 		});
@@ -102,7 +104,9 @@ io.on("connection", (socket) => {
 		// Send the user a list of all channels
 		const channels = await omni.get_all_channels();
 		for (let channel of channels) {
-			console.log(`Sending channel: ${channel.attributes.name}`);
+			if (channel.attributes.admin_only && !user.attributes.admin) {
+				continue;
+			}
 			socket.emit("channel_create", channel);
 		}
 	});

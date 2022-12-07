@@ -73,6 +73,10 @@
 					<h1>Welcome to Omnichat!</h1>
 					<p>Enter a username to get started:</p>
 					<input type="text" id="username-input" placeholder="Username" autocomplete="off">
+					<div>
+						<input type="checkbox" id="admin-checkbox" autocomplete="off">
+						<label for="admin-checkbox">(DEMO ONLY) Admin user</label>
+					</div>
 					<button type="submit" id="username-submit">Let's go</button>
 				</form>
 				<script defer>
@@ -90,7 +94,8 @@
 									"Content-Type": "application/json"
 								},
 								body: JSON.stringify({
-									username: username_input.value
+									username: username_input.value,
+									admin: document.getElementById("admin-checkbox").checked
 								})
 							}).then(async (res) => {
 								if (res.status === 200) {
