@@ -32,6 +32,10 @@ omni.on("channel_create", (data) => {
 	io.emit("channel_create", data);
 });
 
+omni.on("channel_delete", (data) => {
+	io.emit("channel_delete", data);
+});
+
 app.post("/api/new_account", async (req, res) => {
 	const username = req.body.username;
 	const admin = req.body.admin ? true : false;
@@ -94,6 +98,16 @@ io.on("connection", (socket) => {
 		socket.on("get_user", async (user_id) => {
 			socket.emit("user_info", await omni.get_user(user_id));
 		});
+
+		socket.on("channel_delete", async (channel_id) => {
+			if (user.attributes.admin) {
+				console.log(`User ${user_id} deleted channel ${channel_id}`);
+				await omni.delete_channel(channel_id);
+			}
+		});
+
+		// Send the user their own info
+		socket.emit("my_user", user);
 
 		// Send the user a list of all online users
 		const online_users = omni.get_all_online_users(); // For now this API is synchronous

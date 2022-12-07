@@ -9,6 +9,7 @@ const messages = document.getElementById("messages");
 const user_list = document.getElementById("user-list");
 const channel_list = document.getElementById("channel-list");
 
+let this_user = null;
 let user_cache = {};
 let message_cache = {};
 
@@ -110,6 +111,10 @@ socket.on("disconnect", (reason) => {
 socket.on("connect_error", (err) => {
 	console.log(`Connection error: ${err}`);
 	display_error(`Connection error: ${err}`);
+});
+
+socket.on("my_user", (user) => {
+	this_user = user;
 });
 
 socket.on("user_online", (user) => {
@@ -214,9 +219,44 @@ socket.on("channel_create", (data) => {
 	let channel = document.createElement("div");
 	channel.classList.add("channel");
 	channel.setAttribute("channel-id", data.id);
-	channel.innerText = data.attributes.name;
 	channel_list.appendChild(channel);
 
+	if (data.attributes.admin_only) {
+		let lock_icon = document.createElement("i");
+		lock_icon.classList.add("fas", "fa-lock");
+		lock_icon.classList.add("inline-icon");
+		//lock_icon.style.float = "right";
+		//lock_icon.style.cursor = "pointer";
+		channel.appendChild(lock_icon);
+	}
+
+	let channel_name = document.createElement("span");
+	channel_name.classList.add("channel-name");
+	channel_name.innerText = data.attributes.name;
+	channel.appendChild(channel_name);
+
+	let delete_icon = document.createElement("i");
+	delete_icon.classList.add("fas", "fa-times");
+	delete_icon.classList.add("inline-icon");
+	delete_icon.style.float = "right";
+	delete_icon.style.cursor = "pointer";
+	delete_icon.style.display = "none";
+	delete_icon.addEventListener("click", (e) => {
+		e.stopPropagation();
+		socket.emit("channel_delete", data.id);
+	});
+	channel.appendChild(delete_icon);
+	
+	channel.addEventListener("mouseover", () => {
+		if (this_user.attributes.admin) {
+			delete_icon.style.display = "inline";
+		}
+	});
+
+	channel.addEventListener("mouseleave", () => {
+		delete_icon.style.display = "none";
+	});
+	
 	channel.addEventListener("click", () => {
 		input.disabled = false;
 		send_button.disabled = false;
@@ -251,4 +291,22 @@ socket.on("channel_create", (data) => {
 			});
 		}
 	});
+});
+
+socket.on("channel_delete", (channel_id) => {
+	let channel = document.querySelector(`.channel[channel-id="${channel_id}"]`);
+	channel_list.removeChild(channel);
+
+	if (channel_id == current_channel_id) {
+		// Clear messages pane
+		messages.innerHTML = "";
+		input.disabled = true;
+		send_button.disabled = true;
+		current_channel_id = null;
+	}
+
+	// Remove from message cache
+	if (message_cache[channel_id]) {
+		delete message_cache[channel_id];
+	}
 });

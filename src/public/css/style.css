@@ -150,6 +150,13 @@ html, body {
 	background-color: var(--highlight-color);
 }
 
+.inline-icon {
+	display: inline-block;
+	width: 20px;
+	height: 20px;
+	color: var(--text-color);
+}
+
 .layoutpanel {
 	background-color: var(--inset-color);
 	border-radius: 6px;
