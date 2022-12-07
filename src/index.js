@@ -1,4 +1,4 @@
-const omni = require("omni");
+const omni = require("omni").create();
 const http = require("http");
 const express = require("express");
 const app = express();
