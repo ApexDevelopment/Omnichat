@@ -119,7 +119,13 @@ async function boot_omni() {
 					await omni.delete_channel(channel_id);
 				}
 			});
-	
+
+			socket.on("send_pair_request", async (data) => {
+				if (user.attributes.admin) {
+					omni.send_pair_request(data.address, data.port);
+				}
+			});
+
 			// Send the user their own info
 			socket.emit("my_user", user);
 	

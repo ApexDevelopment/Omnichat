@@ -3,12 +3,13 @@ let socket = io();
 let current_channel_id = null;
 let online_users = {};
 const form = document.getElementById("message-form");
-const input = document.getElementById("message-input");
+const message_input = document.getElementById("message-input");
 const send_button = document.getElementById("send-button");
 const messages = document.getElementById("messages");
 const user_list = document.getElementById("user-list");
-const channel_list = document.getElementById("channel-list");
+const channel_list = document.getElementById("channels");
 const add_channel_button = document.getElementById("add-channel-button");
+const pair_request_button = document.getElementById("pair-request-button");
 
 let this_user = null;
 let user_cache = {};
@@ -58,16 +59,43 @@ function login() {
 	}
 }
 
-function prompt(message) {
+function prompt(message, prompt_items) {
 	return new Promise((resolve, reject) => {
 		let prompt_div = document.createElement("div");
 		prompt_div.classList.add("prompt-form");
-		prompt_div.innerText = message;
-		// Add input
-		let input = document.createElement("input");
-		input.classList.add("prompt-input");
-		input.type = "text";
-		prompt_div.appendChild(input);
+
+		let prompt_header = document.createElement("h2");
+		prompt_header.innerText = message;
+		prompt_div.appendChild(prompt_header);
+
+		// Add inputs
+		for (let prompt_item of prompt_items) {
+			let input_container = document.createElement("div");
+			let input = document.createElement("input");
+			let input_added = false;
+			input.id = prompt_item.id;
+			input.classList.add(`prompt-${prompt_item.type}-input`);
+			input.type = prompt_item.type;
+
+			if (prompt_item.label_position === "after") {
+				input_container.appendChild(input);
+				input_added = true;
+			}
+
+			if (prompt_item.label) {
+				let label = document.createElement("label");
+				label.innerText = prompt_item.label;
+				label.htmlFor = prompt_item.id;
+				input_container.appendChild(label);
+			}
+
+			if (prompt_item.label_position === "before" || !input_added) {
+				input_container.appendChild(input);
+				input_added = true;
+			}
+
+			prompt_div.appendChild(input_container);
+		}
 		// Add buttons
 		let button_div = document.createElement("div");
 		let ok_button = document.createElement("button");
@@ -75,8 +103,17 @@ function prompt(message) {
 		ok_button.classList.add("yes");
 		ok_button.innerText = "Create";
 		ok_button.addEventListener("click", () => {
+			let results = {};
+			for (let prompt_item of prompt_items) {
+				if (prompt_item.type === "checkbox") {
+					results[prompt_item.id] = document.getElementById(prompt_item.id).checked;
+					continue;
+				}
+
+				results[prompt_item.id] = document.getElementById(prompt_item.id).value;
+			}
 			prompt_div.remove();
-			resolve(input.value);
+			resolve(results);
 		});
 		let cancel_button = document.createElement("button");
 		cancel_button.classList.add("prompt-button");
@@ -95,25 +132,73 @@ function prompt(message) {
 
 form.addEventListener("submit", (e) => {
 	e.preventDefault();
-	if (input.value && current_channel_id) {
+	if (message_input.value && current_channel_id) {
 		socket.emit("msg_send", {
-			message: input.value,
+			message: message_input.value,
 			channel_id: current_channel_id
 		});
 		
-		input.value = "";
+		message_input.value = "";
 	}
 });
 
 add_channel_button.addEventListener("click", async (e) => {
 	e.preventDefault();
 	if (this_user && this_user.attributes.admin) {
-		let channel_name = await prompt("Enter channel name");
-		if (channel_name) {
+		let results = await prompt("New Channel", [
+			{
+				id: "channel-name",
+				label: "Name",
+				label_position: "before",
+				type: "text"
+			},
+			{
+				id: "channel-admin-only",
+				label: "Admin only",
+				label_position: "after",
+				type: "checkbox"
+			}
+		]);
+
+		if (results) {
+			let channel_name = results["channel-name"];
+			let admin_only = results["channel-admin-only"];
+
 			socket.emit("channel_create", {
 				name: channel_name,
-				admin_only: false // TODO: Make this a checkbox
+				admin_only: admin_only
 			});
+		}
+	}
+});
+
+pair_request_button.addEventListener("click", async (e) => {
+	e.preventDefault();
+	if (this_user && this_user.attributes.admin) {
+		let results = await prompt("Add Peer", [
+			{
+				id: "peer-address",
+				label: "Address",
+				label_position: "before",
+				type: "text"
+			},
+			{
+				id: "peer-port",
+				label: "Port",
+				label_position: "before",
+				type: "text"
+			}
+		]);
+
+		if (results) {
+			let address = results["peer-address"];
+			let port = results["peer-port"];
+			if (address && port) {
+				socket.emit("send_pair_request", {
+					address,
+					port
+				});
+			}
 		}
 	}
 });
@@ -167,6 +252,7 @@ socket.on("my_user", (user) => {
 
 	if (this_user.attributes.admin) {
 		add_channel_button.style.display = "block";
+		pair_request_button.style.display = "block";
 	}
 });
 
@@ -267,7 +353,7 @@ socket.on("msg_rcv", (data) => {
 });
 
 socket.on("channel_create", (data) => {
-	console.log("Channel added: " + data.attributes.name + " (" + data.id + ")");
+	//console.log("Channel added: " + data.attributes.name + " (" + data.id + ")");
 
 	let channel = document.createElement("div");
 	channel.classList.add("channel");
@@ -311,7 +397,7 @@ socket.on("channel_create", (data) => {
 	});
 	
 	channel.addEventListener("click", () => {
-		input.disabled = false;
+		message_input.disabled = false;
 		send_button.disabled = false;
 
 		// Mark old channel as not selected
@@ -353,7 +439,7 @@ socket.on("channel_delete", (channel_id) => {
 	if (channel_id == current_channel_id) {
 		// Clear messages pane
 		messages.innerHTML = "";
-		input.disabled = true;
+		message_input.disabled = true;
 		send_button.disabled = true;
 		current_channel_id = null;
 	}

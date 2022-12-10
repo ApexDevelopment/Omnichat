@@ -146,7 +146,7 @@ html, body {
 	background-color: var(--highlight-color);
 }
 
-#channel-list #add-channel-button {
+.add-button {
 	display: none;
 	background-color: var(--yes-color);
 	border-style: hidden;
@@ -211,7 +211,8 @@ html, body {
 	cursor: default;
 }
 
-.prompt-input {
+.prompt-text-input {
+	box-sizing: border-box;
 	width: 100%;
 	padding: 10px;
 	border: none;
