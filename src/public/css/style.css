@@ -206,9 +206,13 @@ html, body {
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
-	align-items: center;
 	user-select: none;
 	cursor: default;
+}
+
+.prompt-button-container {
+	display: flex;
+	gap: 10px;
 }
 
 .prompt-text-input {

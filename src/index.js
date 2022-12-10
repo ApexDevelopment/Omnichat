@@ -10,6 +10,8 @@ async function boot_omni() {
 	
 	const path = require("path");
 	const public_directory = path.join(__dirname, "public");
+
+	let user_to_socket_map = new Map();
 	
 	app.use(express.static(public_directory));
 	app.use(express.json());
@@ -35,6 +37,17 @@ async function boot_omni() {
 	
 	omni.on("channel_delete", (data) => {
 		io.emit("channel_delete", data);
+	});
+
+	omni.on("pair_request", async (data) => {
+		let users = await omni.get_all_online_local_users();
+
+		for (let user of users) {
+			if (user.attributes.is_admin) {
+				let socket = user_to_socket_map.get(user.id);
+				socket.emit("pair_request", data);
+			}
+		}
 	});
 	
 	app.post("/api/new_account", async (req, res) => {
@@ -77,9 +90,12 @@ async function boot_omni() {
 			}
 	
 			const user = await omni.get_user(user_id);
+
+			user_to_socket_map.set(user_id, socket);
 	
 			socket.on("disconnect", () => {
 				console.log("User disconnected!", user_id);
+				user_to_socket_map.delete(user_id);
 				omni.logout_user(user_id);
 			});
 	

@@ -98,10 +98,11 @@ function prompt(message, prompt_items) {
 		}
 		// Add buttons
 		let button_div = document.createElement("div");
+		button_div.classList.add("prompt-button-container");
 		let ok_button = document.createElement("button");
 		ok_button.classList.add("prompt-button");
 		ok_button.classList.add("yes");
-		ok_button.innerText = "Create";
+		ok_button.innerText = "Done";
 		ok_button.addEventListener("click", () => {
 			let results = {};
 			for (let prompt_item of prompt_items) {
@@ -123,8 +124,9 @@ function prompt(message, prompt_items) {
 			prompt_div.remove();
 			resolve(null);
 		});
-		button_div.appendChild(ok_button);
+
 		button_div.appendChild(cancel_button);
+		button_div.appendChild(ok_button);
 		prompt_div.appendChild(button_div);
 		document.body.appendChild(prompt_div);
 	});
@@ -448,4 +450,32 @@ socket.on("channel_delete", (channel_id) => {
 	if (message_cache[channel_id]) {
 		delete message_cache[channel_id];
 	}
+});
+
+socket.on("pair_request", (data) => {
+	console.log("Received pairing request:", data);
+/*
+	let pair_request = document.createElement("div");
+	pair_request.classList.add("pair-request");
+
+	let request_text = document.createElement("span");
+	request_text.innerText = data.attributes.message;
+	pair_request.appendChild(request_text);
+
+	let accept_button = document.createElement("button");
+	accept_button.innerText = "Accept";
+	accept_button.addEventListener("click", () => {
+		socket.emit("pair_request_accept", data.id);
+	});
+	pair_request.appendChild(accept_button);
+
+	let reject_button = document.createElement("button");
+	reject_button.innerText = "Reject";
+	reject_button.addEventListener("click", () => {
+		socket.emit("pair_request_reject", data.id);
+	});
+	pair_request.appendChild(reject_button);
+
+	pair_requests.appendChild(pair_request);
+	*/
 });
