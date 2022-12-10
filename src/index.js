@@ -43,8 +43,8 @@ async function boot_omni() {
 		let users = await omni.get_all_online_local_users();
 
 		for (let user of users) {
-			console.log("User " + user.id + " is admin: " + user.attributes.is_admin);
-			if (user.attributes.is_admin) {
+			console.log("User " + user.id + " is admin: " + user.attributes.admin);
+			if (user.attributes.admin) {
 				console.log("Sending pair request notification to user " + user.id);
 				let socket = user_to_socket_map.get(user.id);
 				socket.emit("pair_request", data);
