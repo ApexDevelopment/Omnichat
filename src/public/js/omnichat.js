@@ -536,5 +536,4 @@ socket.on("pair_request", (data) => {
 	pair_request.appendChild(reject_button);
 
 	pair_requests.appendChild(pair_request);
-	*/
 });
