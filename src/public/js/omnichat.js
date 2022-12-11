@@ -507,7 +507,7 @@ socket.on("channel_delete", (channel_id) => {
 
 socket.on("pair_request", (data) => {
 	console.log("Received pairing request:", data);
-/*
+
 	let pair_request = document.createElement("div");
 	pair_request.classList.add("pair-request");
 
@@ -518,14 +518,20 @@ socket.on("pair_request", (data) => {
 	let accept_button = document.createElement("button");
 	accept_button.innerText = "Accept";
 	accept_button.addEventListener("click", () => {
-		socket.emit("pair_request_accept", data.id);
+		socket.emit("respond_to_pair_request", {
+			id: data.id,
+			accepted: true
+		});
 	});
 	pair_request.appendChild(accept_button);
 
 	let reject_button = document.createElement("button");
 	reject_button.innerText = "Reject";
 	reject_button.addEventListener("click", () => {
-		socket.emit("pair_request_reject", data.id);
+		socket.emit("respond_to_pair_request", {
+			id: data.id,
+			accepted: false
+		});
 	});
 	pair_request.appendChild(reject_button);
 

@@ -161,6 +161,12 @@ async function boot_omni() {
 				}
 			});
 
+			socket.on("respond_to_pair_request", async (data) => {
+				if (user.attributes.admin) {
+					omni.respond_to_pair_request(data.id, data.accepted);
+				}
+			});
+
 			// Send the user their own info
 			socket.emit("my_user", user);
 	
