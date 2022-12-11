@@ -512,7 +512,7 @@ socket.on("pair_request", (data) => {
 	pair_request.classList.add("pair-request");
 
 	let request_text = document.createElement("span");
-	request_text.innerText = data.attributes.message;
+	request_text.innerText = `New pair request from ${data.name} (${data.id}@${data.address}:${data.port})`;
 	pair_request.appendChild(request_text);
 
 	let accept_button = document.createElement("button");
