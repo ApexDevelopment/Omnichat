@@ -10,8 +10,11 @@ const user_list = document.getElementById("user-list");
 const channel_list = document.getElementById("channels");
 const add_channel_button = document.getElementById("add-channel-button");
 const pair_request_button = document.getElementById("pair-request-button");
+const my_profile_name = document.getElementById("my-profile-name");
+const my_profile_id = document.getElementById("my-profile-id");
 
 let this_user = null;
+let peer_cache = {};
 let user_cache = {};
 let message_cache = {};
 
@@ -256,6 +259,9 @@ socket.on("my_user", (user) => {
 		add_channel_button.style.display = "block";
 		pair_request_button.style.display = "block";
 	}
+
+	my_profile_name.innerText = this_user.attributes.username;
+	my_profile_id.innerText = this_user.id;
 });
 
 socket.on("user_online", (user) => {
@@ -286,6 +292,10 @@ socket.on("user_info", (user) => {
 	user_cache[user.id] = user;
 });
 
+socket.on("peer_info", (peer) => {
+	peer_cache[peer.id] = peer;
+});
+
 function get_username_for_id(user_id) {
 	return new Promise((resolve, reject) => {
 		if (user_cache[user_id]) {
@@ -303,6 +313,27 @@ function get_username_for_id(user_id) {
 			}
 	
 			socket.on("user_info", listener);
+		}
+	});
+}
+
+function get_peer_for_id(peer_id) {
+	return new Promise((resolve, reject) => {
+		if (peer_cache[peer_id]) {
+			resolve(peer_cache[peer_id]);
+		}
+		else {
+			socket.emit("get_peer", peer_id);
+			const listener = (peer) => {
+				if (peer.id !== peer_id) {
+					return;
+				}
+	
+				socket.off("peer_info", listener);
+				resolve(peer);
+			}
+	
+			socket.on("peer_info", listener);
 		}
 	});
 }
@@ -356,11 +387,29 @@ socket.on("msg_rcv", (data) => {
 
 socket.on("channel_create", (data) => {
 	//console.log("Channel added: " + data.attributes.name + " (" + data.id + ")");
+	let peer_id = data.relationships.peer.data.id;
+	let peer_section = document.querySelector(`.peer[peer-id="${peer_id}"]`);
+	if (!peer_section) {
+		peer_section = document.createElement("div");
+		peer_section.classList.add("peer");
+		peer_section.setAttribute("peer-id", peer_id);
+		
+		let peer_name = document.createElement("div");
+		peer_name.classList.add("peer-name");
+		peer_name.innerText = data.relationships.peer.data.id;
+		peer_section.appendChild(peer_name);
+
+		get_peer_for_id(peer_id).then((peer) => {
+			peer_name.innerText = peer.attributes.name;
+		});
+
+		channel_list.appendChild(peer_section);
+	}
 
 	let channel = document.createElement("div");
 	channel.classList.add("channel");
 	channel.setAttribute("channel-id", data.id);
-	channel_list.appendChild(channel);
+	peer_section.appendChild(channel);
 
 	if (data.attributes.admin_only) {
 		let lock_icon = document.createElement("i");
@@ -436,7 +485,11 @@ socket.on("channel_create", (data) => {
 
 socket.on("channel_delete", (channel_id) => {
 	let channel = document.querySelector(`.channel[channel-id="${channel_id}"]`);
-	channel_list.removeChild(channel);
+	if (!channel) {
+		return;
+	}
+
+	channel.remove();
 
 	if (channel_id == current_channel_id) {
 		// Clear messages pane

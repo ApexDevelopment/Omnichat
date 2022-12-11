@@ -43,12 +43,20 @@ async function boot_omni() {
 		let users = await omni.get_all_online_local_users();
 
 		for (let user of users) {
-			console.log("User " + user.id + " is admin: " + user.attributes.admin);
 			if (user.attributes.admin) {
-				console.log("Sending pair request notification to user " + user.id);
 				let socket = user_to_socket_map.get(user.id);
 				socket.emit("pair_request", data);
 			}
+		}
+	});
+
+	omni.on("pair_accept", async (data) => {
+		let peer = await omni.get_peer(data.id);
+		let users = await omni.get_all_online_local_users();
+
+		for (let user of users) {
+			let socket = user_to_socket_map.get(user.id);
+			socket.emit("peer_info", data);
 		}
 	});
 	
@@ -118,6 +126,10 @@ async function boot_omni() {
 				socket.emit("user_info", await omni.get_user(user_id));
 			});
 
+			socket.on("get_peer", async (peer_id) => {
+				socket.emit("peer_info", await omni.get_peer(peer_id));
+			});
+
 			socket.on("channel_create", async (data) => {
 				if (user.attributes.admin) {
 					// Validate channel name
@@ -133,8 +145,13 @@ async function boot_omni() {
 	
 			socket.on("channel_delete", async (channel_id) => {
 				if (user.attributes.admin) {
-					console.log(`User ${user_id} deleted channel ${channel_id}`);
-					await omni.delete_channel(channel_id);
+					let success = await omni.delete_channel(channel_id);
+					if (success) {
+						console.log(`User ${user_id} deleted channel ${channel_id}`);
+					}
+					else {
+						console.log(`User ${user_id} failed to delete channel ${channel_id}`);
+					}
 				}
 			});
 

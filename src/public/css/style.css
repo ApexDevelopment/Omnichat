@@ -1,5 +1,5 @@
 :root {
-	--highlight-color: rgb(158, 44, 44);
+	--highlight-color: rgb(121, 130, 131);
 	--background-color: rgb(24, 26, 27);
 	--inset-color: rgb(50, 50, 50);
 	--special-color: rgb(210, 212, 40);
@@ -133,17 +133,36 @@ html, body {
 }
 
 #channel-list {
+	display: flex;
 	flex-grow: 1;
-	min-width: 20%;
+	max-width: 20%;
+	min-width: min-content;
 }
 
 #channel-list .channel {
 	padding: 5px;
 	border-radius: 6px;
+	min-width: min-content;
+	white-space: nowrap;
 }
 
 #channel-list .channel:hover {
 	background-color: var(--highlight-color);
+}
+
+#channel-list #spacer {
+	flex-grow: 1;
+}
+
+.peer-name {
+	box-sizing: border-box;
+	background-color: var(--background-color);
+	padding: 5px;
+	margin-bottom: 5px;
+	width: 100%;
+	font-weight: bold;
+	font-size: 0.8em;
+	text-transform: uppercase;
 }
 
 .add-button {
@@ -153,6 +172,8 @@ html, body {
 	border-radius: 6px;
 	outline: none;
 	cursor: pointer;
+	margin-top: 5px;
+	margin-bottom: 5px;
 }
 
 .selected {
@@ -164,6 +185,25 @@ html, body {
 	width: 20px;
 	height: 20px;
 	color: var(--text-color);
+}
+
+#my-profile {
+	display: flex;
+	flex-direction: column;
+	background-color: var(--background-color);
+	padding: 10px;
+	border-radius: 6px;
+}
+
+#my-profile-name {
+	font-weight: bold;
+	margin-bottom: 10px;
+}
+
+#my-profile-id {
+	font-size: 0.8em;
+	font-weight: bold;
+	text-transform: uppercase;
 }
 
 .layoutpanel {
