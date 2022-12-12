@@ -143,7 +143,7 @@ html, body {
 	padding: 5px;
 	border-radius: 6px;
 	min-width: min-content;
-	white-space: nowrap;
+	cursor: pointer;
 }
 
 #channel-list .channel:hover {
@@ -164,6 +164,9 @@ html, body {
 	font-weight: bold;
 	font-size: 0.8em;
 	text-transform: uppercase;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
 }
 
 .add-button {
@@ -173,6 +176,9 @@ html, body {
 	border-radius: 6px;
 	outline: none;
 	cursor: pointer;
+}
+
+.list-spaced {
 	margin-top: 5px;
 	margin-bottom: 5px;
 }
@@ -284,6 +290,18 @@ html, body {
 	color: var(--text-color);
 	outline: none;
 	cursor: pointer;
+}
+
+.tooltip {
+	position: absolute;
+	background-color: var(--inset-color);
+	padding: 10px;
+	border-radius: 6px;
+	box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.5);
+	font-size: 20px;
+	font-family: sans-serif;
+	color: var(--text-color);
+	visibility: hidden;
 }
 
 .yes {

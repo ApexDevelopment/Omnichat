@@ -189,16 +189,24 @@ add_channel_button.addEventListener("click", async (e) => {
 				label: "Admin only",
 				label_position: "after",
 				type: "checkbox"
+			},
+			{
+				id: "channel-private",
+				label: "Private",
+				label_position: "after",
+				type: "checkbox"
 			}
 		]);
 
 		if (results) {
 			let channel_name = results["channel-name"];
 			let admin_only = results["channel-admin-only"];
+			let is_private = results["channel-private"];
 
 			socket.emit("channel_create", {
 				name: channel_name,
-				admin_only: admin_only
+				admin_only: admin_only,
+				is_private: is_private
 			});
 		}
 	}
@@ -289,6 +297,16 @@ socket.on("my_user", (user) => {
 
 	my_profile_name.innerText = this_user.attributes.username;
 	my_profile_id.innerText = this_user.id;
+});
+
+socket.on("this_server", (id) => {
+	get_peer_for_id(id).then((_) => {
+		let peer_section = document.querySelector(`.peer[peer-id="${id}"]`);
+
+		if (peer_section) {
+			peer_section.getElementsByClassName("peer-name")[0].appendChild(add_channel_button);
+		}
+	});
 });
 
 socket.on("user_online", (user) => {
@@ -425,9 +443,13 @@ socket.on("channel_create", (data) => {
 		let lock_icon = document.createElement("i");
 		lock_icon.classList.add("fas", "fa-lock");
 		lock_icon.classList.add("inline-icon");
-		//lock_icon.style.float = "right";
-		//lock_icon.style.cursor = "pointer";
 		channel.appendChild(lock_icon);
+	}
+	else if (data.attributes.is_private) {
+		let private_icon = document.createElement("i");
+		private_icon.classList.add("fas", "fa-eye-slash");
+		private_icon.classList.add("inline-icon");
+		channel.appendChild(private_icon);
 	}
 
 	let channel_name = document.createElement("span");
@@ -522,7 +544,17 @@ socket.on("pair_request", (data) => {
 	pair_request.classList.add("prompt");
 
 	let request_text = document.createElement("span");
-	request_text.innerText = `New pair request from ${data.name} (${data.id}@${data.address}:${data.port})`;
+	request_text.innerText = `Pair request from ${data.name} (${data.address}:${data.port})`;
+	let id_tooltip = document.createElement("span");
+	id_tooltip.classList.add("tooltip");
+	id_tooltip.innerText = data.id;
+	request_text.appendChild(id_tooltip);
+	request_text.addEventListener("mouseover", () => {
+		id_tooltip.style.visibility = "visible";
+	});
+	request_text.addEventListener("mouseleave", () => {
+		id_tooltip.style.visibility = "hidden";
+	});
 	pair_request.appendChild(request_text);
 
 	let button_div = document.createElement("div");

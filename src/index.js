@@ -146,7 +146,7 @@ async function boot_omni(conf, port) {
 						return;
 					}
 
-					const channel_id = await omni.create_channel(data.name, data.admin_only);
+					const channel_id = await omni.create_channel(data.name, data.admin_only, data.is_private);
 					console.log(`User ${user_id} created channel ${channel_id}`);
 				}
 			});
@@ -192,6 +192,8 @@ async function boot_omni(conf, port) {
 				}
 				socket.emit("channel_create", channel);
 			}
+
+			socket.emit("this_server", omni.id());
 		});
 	
 		socket.emit("login_poke");
