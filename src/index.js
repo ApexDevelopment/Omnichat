@@ -1,10 +1,9 @@
-async function boot_omni() {
+async function boot_omni(conf, port) {
 	const omni = await require("omni").create();
 	const http = require("http");
 	const express = require("express");
 	const app = express();
 	const server = http.createServer(app);
-	const port = 80;
 	const { Server } = require("socket.io");
 	const io = new Server(server);
 	
@@ -16,7 +15,7 @@ async function boot_omni() {
 	app.use(express.static(public_directory));
 	app.use(express.json());
 	
-	omni.start("omniconf.json");
+	omni.start(conf);
 	
 	// TODO: Handle all events
 	omni.on("message", (data) => {
@@ -52,6 +51,15 @@ async function boot_omni() {
 
 	omni.on("pair_accept", async (data) => {
 		let peer = await omni.get_peer(data.id);
+		let users = await omni.get_all_online_local_users();
+
+		for (let user of users) {
+			let socket = user_to_socket_map.get(user.id);
+			socket.emit("peer_info", peer);
+		}
+	});
+
+	omni.on("peer_online", async (data) => {
 		let users = await omni.get_all_online_local_users();
 
 		for (let user of users) {
@@ -199,4 +207,7 @@ async function boot_omni() {
 	});
 }
 
-boot_omni();
+let config = process.argv[2] || "omniconf.json";
+let port = process.argv[3] || 80;
+
+boot_omni(config, port);

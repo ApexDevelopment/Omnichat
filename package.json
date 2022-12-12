@@ -5,7 +5,8 @@
   "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start-dev": "node src/index.js",
+    "start-dev": "node src/index.js omniconf1.json 80",
+    "start-dev-2": "node src/index.js omniconf2.json 5000",
 	"copy-omni-win": "xcopy ..\\Omni\\src\\* node_modules\\omni\\src\\ /Y",
 	"copy-omni-linux": "cp ../Omni/src/* node_modules/omni/src/ -r"
   },

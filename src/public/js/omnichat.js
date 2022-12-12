@@ -65,7 +65,7 @@ function login() {
 function prompt(message, prompt_items) {
 	return new Promise((resolve, reject) => {
 		let prompt_div = document.createElement("div");
-		prompt_div.classList.add("prompt-form");
+		prompt_div.classList.add("prompt");
 
 		let prompt_header = document.createElement("h2");
 		prompt_header.innerText = message;
@@ -133,6 +133,33 @@ function prompt(message, prompt_items) {
 		prompt_div.appendChild(button_div);
 		document.body.appendChild(prompt_div);
 	});
+}
+
+function add_peer_section(peer) {
+	let peer_section = document.createElement("div");
+	peer_section.classList.add("peer");
+	peer_section.setAttribute("peer-id", peer.id);
+	
+	let peer_name = document.createElement("div");
+	peer_name.classList.add("peer-name");
+	peer_name.innerText = peer.id;
+	peer_section.appendChild(peer_name);
+
+	get_peer_for_id(peer.id).then((the_peer) => {
+		peer_name.innerText = the_peer.attributes.name;
+	});
+
+	channel_list.appendChild(peer_section);
+	return peer_section;
+}
+
+function get_peer_section_or_create_if_none(peer) {
+	let peer_section = document.querySelector(`.peer[peer-id="${peer.id}"]`);
+	if (!peer_section) {
+		peer_section = add_peer_section(peer);
+	}
+
+	return peer_section;
 }
 
 form.addEventListener("submit", (e) => {
@@ -294,6 +321,7 @@ socket.on("user_info", (user) => {
 
 socket.on("peer_info", (peer) => {
 	peer_cache[peer.id] = peer;
+	get_peer_section_or_create_if_none(peer);
 });
 
 function get_username_for_id(user_id) {
@@ -308,11 +336,10 @@ function get_username_for_id(user_id) {
 					return;
 				}
 	
-				socket.off("user_info", listener);
 				resolve(user.attributes.username);
 			}
 	
-			socket.on("user_info", listener);
+			socket.once("user_info", listener);
 		}
 	});
 }
@@ -329,11 +356,10 @@ function get_peer_for_id(peer_id) {
 					return;
 				}
 	
-				socket.off("peer_info", listener);
 				resolve(peer);
 			}
 	
-			socket.on("peer_info", listener);
+			socket.once("peer_info", listener);
 		}
 	});
 }
@@ -388,23 +414,7 @@ socket.on("msg_rcv", (data) => {
 socket.on("channel_create", (data) => {
 	//console.log("Channel added: " + data.attributes.name + " (" + data.id + ")");
 	let peer_id = data.relationships.peer.data.id;
-	let peer_section = document.querySelector(`.peer[peer-id="${peer_id}"]`);
-	if (!peer_section) {
-		peer_section = document.createElement("div");
-		peer_section.classList.add("peer");
-		peer_section.setAttribute("peer-id", peer_id);
-		
-		let peer_name = document.createElement("div");
-		peer_name.classList.add("peer-name");
-		peer_name.innerText = data.relationships.peer.data.id;
-		peer_section.appendChild(peer_name);
-
-		get_peer_for_id(peer_id).then((peer) => {
-			peer_name.innerText = peer.attributes.name;
-		});
-
-		channel_list.appendChild(peer_section);
-	}
+	let peer_section = get_peer_section_or_create_if_none(data.relationships.peer.data);
 
 	let channel = document.createElement("div");
 	channel.classList.add("channel");
@@ -509,31 +519,41 @@ socket.on("pair_request", (data) => {
 	console.log("Received pairing request:", data);
 
 	let pair_request = document.createElement("div");
-	pair_request.classList.add("pair-request");
+	pair_request.classList.add("prompt");
 
 	let request_text = document.createElement("span");
 	request_text.innerText = `New pair request from ${data.name} (${data.id}@${data.address}:${data.port})`;
 	pair_request.appendChild(request_text);
 
-	let accept_button = document.createElement("button");
-	accept_button.innerText = "Accept";
-	accept_button.addEventListener("click", () => {
-		socket.emit("respond_to_pair_request", {
-			id: data.id,
-			accepted: true
-		});
-	});
-	pair_request.appendChild(accept_button);
+	let button_div = document.createElement("div");
+	button_div.classList.add("prompt-button-container");
 
 	let reject_button = document.createElement("button");
 	reject_button.innerText = "Reject";
+	reject_button.classList.add("prompt-button");
+	reject_button.classList.add("cancel");
 	reject_button.addEventListener("click", () => {
+		pair_request.remove();
 		socket.emit("respond_to_pair_request", {
 			id: data.id,
 			accepted: false
 		});
 	});
-	pair_request.appendChild(reject_button);
+	button_div.appendChild(reject_button);
 
-	pair_requests.appendChild(pair_request);
+	let accept_button = document.createElement("button");
+	accept_button.innerText = "Accept";
+	accept_button.classList.add("prompt-button");
+	accept_button.classList.add("yes");
+	accept_button.addEventListener("click", () => {
+		pair_request.remove();
+		socket.emit("respond_to_pair_request", {
+			id: data.id,
+			accepted: true
+		});
+	});
+	button_div.appendChild(accept_button);
+
+	pair_request.appendChild(button_div);
+	document.body.appendChild(pair_request);
 });
