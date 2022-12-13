@@ -132,6 +132,15 @@ html, body {
 	min-width: 20%;
 }
 
+#user-list .user {
+	border-radius: 6px;
+	padding: 5px;
+}
+
+#user-list .user:hover {
+	background-color: var(--background-color);
+}
+
 #channel-list {
 	display: flex;
 	flex-grow: 1;
