@@ -44,6 +44,21 @@ function does_message_cache_contain(message) {
 	return false;
 }
 
+function remove_from_message_cache(message) {
+	const channel_id = message.relationships.channel.data.id;
+
+	if (!message_cache[channel_id]) {
+		return;
+	}
+
+	for (let i = 0; i < message_cache[channel_id].length; i++) {
+		if (message_cache[channel_id][i].id === message.id) {
+			message_cache[channel_id].splice(i, 1);
+			return;
+		}
+	}
+}
+
 function get_cookie(name) {
 	let value = "; " + document.cookie;
 	let parts = value.split("; " + name + "=");
@@ -382,7 +397,7 @@ function get_peer_for_id(peer_id) {
 	});
 }
 
-function display_message(user_id, content, timestamp) {
+function display_message(user_id, message_id, content, timestamp) {
 	let message = document.createElement("div");
 	message.classList.add("message");
 
@@ -400,6 +415,30 @@ function display_message(user_id, content, timestamp) {
 	message_content.innerText = content;
 	message.appendChild(message_content);
 
+	if (this_user.attributes.admin || user_id === this_user.id) {
+		let delete_icon = document.createElement("i");
+		delete_icon.classList.add("fas", "fa-times");
+		delete_icon.classList.add("inline-icon");
+		delete_icon.style.float = "right";
+		delete_icon.style.cursor = "pointer";
+		delete_icon.style.display = "none";
+		delete_icon.style.marginLeft = "5px";
+		delete_icon.addEventListener("click", (e) => {
+			e.stopPropagation();
+			socket.emit("channel_delete", channel_data.id);
+		});
+		message.addEventListener("mouseover", (e) => {
+			delete_icon.style.display = "inline";
+		});
+		message.addEventListener("mouseout", (e) => {
+			delete_icon.style.display = "none";
+		});
+		message.addEventListener("click", (e) => {
+			socket.emit("msg_del", message_id);
+		});
+		message.appendChild(delete_icon);
+	}
+
 	let message_timestamp = document.createElement("span");
 	message_timestamp.classList.add("timestamp");
 	message_timestamp.innerText = new Date(timestamp).toLocaleString();
@@ -410,42 +449,59 @@ function display_message(user_id, content, timestamp) {
 	messages.scrollTo(0, messages.scrollHeight);
 }
 
-socket.on("msg_rcv", (data) => {
-	console.log("Received message:", data);
+socket.on("msg_rcv", (message) => {
+	console.log("Received message:", message);
 
-	if (does_message_cache_contain(data)) {
+	if (does_message_cache_contain(message)) {
 		return;
 	}
 
-	add_to_message_cache(data);
+	add_to_message_cache(message);
 
-	if (data.relationships.channel.data.id != current_channel_id) {
+	if (message.relationships.channel.data.id != current_channel_id) {
 		return;
 	}
 
-	const user_id = data.relationships.user.data.id;
-	const content = data.attributes.content;
-	const timestamp = data.attributes.timestamp;
-	display_message(user_id, content, timestamp);
+	const user_id = message.relationships.user.data.id;
+	const content = message.attributes.content;
+	const timestamp = message.attributes.timestamp;
+	display_message(user_id, message.id, content, timestamp);
 });
 
-socket.on("channel_create", (data) => {
+socket.on("msg_del", (message) => {
+	console.log("Deleted message:", message);
+
+	if (!does_message_cache_contain(message)) {
+		return;
+	}
+
+	remove_from_message_cache(message);
+
+	if (message.relationships.channel.data.id != current_channel_id) {
+		return;
+	}
+
+	let message_element = document.querySelector(`.message[message-id="${message.id}"]`);
+	messages.removeChild(message_element);
+});
+
+socket.on("channel_create", (channel_data) => {
 	//console.log("Channel added: " + data.attributes.name + " (" + data.id + ")");
-	let peer_id = data.relationships.peer.data.id;
-	let peer_section = get_peer_section_or_create_if_none(data.relationships.peer.data);
+	let peer_id = channel_data.relationships.peer.data.id;
+	let peer_section = get_peer_section_or_create_if_none(channel_data.relationships.peer.data);
 
 	let channel = document.createElement("div");
 	channel.classList.add("channel");
-	channel.setAttribute("channel-id", data.id);
+	channel.setAttribute("channel-id", channel_data.id);
 	peer_section.appendChild(channel);
 
-	if (data.attributes.admin_only) {
+	if (channel_data.attributes.admin_only) {
 		let lock_icon = document.createElement("i");
 		lock_icon.classList.add("fas", "fa-lock");
 		lock_icon.classList.add("inline-icon");
 		channel.appendChild(lock_icon);
 	}
-	else if (data.attributes.is_private) {
+	else if (channel_data.attributes.is_private) {
 		let private_icon = document.createElement("i");
 		private_icon.classList.add("fas", "fa-eye-slash");
 		private_icon.classList.add("inline-icon");
@@ -454,7 +510,7 @@ socket.on("channel_create", (data) => {
 
 	let channel_name = document.createElement("span");
 	channel_name.classList.add("channel-name");
-	channel_name.innerText = data.attributes.name;
+	channel_name.innerText = channel_data.attributes.name;
 	channel.appendChild(channel_name);
 
 	let delete_icon = document.createElement("i");
@@ -465,7 +521,7 @@ socket.on("channel_create", (data) => {
 	delete_icon.style.display = "none";
 	delete_icon.addEventListener("click", (e) => {
 		e.stopPropagation();
-		socket.emit("channel_delete", data.id);
+		socket.emit("channel_delete", channel_data.id);
 	});
 	channel.appendChild(delete_icon);
 	
@@ -492,7 +548,7 @@ socket.on("channel_create", (data) => {
 
 		// Mark this channel as selected
 		channel.classList.add("selected");
-		current_channel_id = data.id;
+		current_channel_id = channel_data.id;
 	
 		// Clear message pane
 		messages.innerHTML = "";
@@ -503,13 +559,13 @@ socket.on("channel_create", (data) => {
 				const user_id = message.relationships.user.data.id;
 				const content = message.attributes.content;
 				const timestamp = message.attributes.timestamp;
-				display_message(user_id, content, timestamp);
+				display_message(user_id, message.id, content, timestamp);
 			}
 		}
 		else {
 			// Ask server for missed messages
 			socket.emit("channel_join", {
-				channel_id: data.id
+				channel_id: channel_data.id
 			});
 		}
 	});

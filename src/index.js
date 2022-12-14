@@ -1,15 +1,15 @@
+const http = require("http");
+const express = require("express");
+const { Server } = require("socket.io");
+const path = require("path");
+const public_directory = path.join(__dirname, "public");
+
 async function boot_omni(conf, port) {
 	const omni = await require("omni").create();
-	const http = require("http");
-	const express = require("express");
 	const app = express();
 	const server = http.createServer(app);
-	const { Server } = require("socket.io");
 	const io = new Server(server);
 	
-	const path = require("path");
-	const public_directory = path.join(__dirname, "public");
-
 	let user_to_socket_map = new Map();
 	
 	app.use(express.static(public_directory));
@@ -17,9 +17,30 @@ async function boot_omni(conf, port) {
 	
 	omni.start(conf);
 	
+	/***********************/
+	/* Omni Event Handlers */
+	/***********************/
+
 	// TODO: Handle all events
 	omni.on("message", (data) => {
-		io.emit("msg_rcv", data);
+		let message = data.message;
+		let recipients = data.recipients;
+
+		for (let recipient of recipients) {
+			console.log(`Sending message to ${recipient.id}`);
+			let socket = user_to_socket_map.get(recipient.id);
+			socket.emit("msg_rcv", message);
+		}
+	});
+
+	omni.on("message_delete", (data) => {
+		let message = data.message;
+		let recipients = data.recipients;
+
+		for (let recipient of recipients) {
+			let socket = user_to_socket_map.get(recipient.id);
+			socket.emit("msg_del", message);
+		}
 	});
 	
 	omni.on("user_online", (data) => {
@@ -68,6 +89,10 @@ async function boot_omni(conf, port) {
 		}
 	});
 	
+	/**************************/
+	/* Express Event Handlers */
+	/**************************/
+	
 	app.post("/api/new_account", async (req, res) => {
 		const username = req.body.username;
 		const admin = req.body.admin ? true : false;
@@ -96,6 +121,10 @@ async function boot_omni(conf, port) {
 		}
 	});
 	
+	/****************************/
+	/* Socket.IO Event Handlers */
+	/****************************/
+	
 	io.on("connection", (socket) => {
 		socket.once("login", async (user_id) => {
 			if (await omni.login_user(user_id)) {
@@ -118,7 +147,20 @@ async function boot_omni(conf, port) {
 			});
 	
 			socket.on("msg_send", async (data) => {
-				const id_new_msg = await omni.send_message(user_id, data.channel_id, data.message);
+				omni.send_message(user_id, data.channel_id, data.message);
+			});
+
+			socket.on("msg_del", async(data) => {
+				let message = await omni.get_message(data.message_id);
+				let channel = await omni.get_channel(message.relationships.channel.data.id);
+
+				if (channel.relationships.peer.data.id != omni.id()) {
+					return;
+				}
+				
+				if (user.attributes.admin || message.relationships.user.data.id == user_id) {
+					omni.delete_message(data.message_id);
+				}
 			});
 	
 			socket.on("channel_join", async (data) => {
