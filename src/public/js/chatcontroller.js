@@ -9,9 +9,15 @@ const pair_request_button = document.getElementById("pair-request-button");
 const my_profile_name = document.getElementById("my-profile-name");
 const my_profile_id = document.getElementById("my-profile-id");
 
+// A class that will allow us to cache messages, peers, and users.
 class Cache {
 	constructor() {
 		this.cache = {};
+		this.get = this.get.bind(this);
+		this.find_all = this.find_all.bind(this);
+		this.set = this.set.bind(this);
+		this.has = this.has.bind(this);
+		this.delete = this.delete.bind(this);
 	}
 
 	get(key) {
@@ -41,32 +47,50 @@ class Cache {
 	}
 }
 
+// The websocket connection to the server (using Socket.IO).
 let socket = io();
 
+// The id of the currently selected channel.
 let current_channel_id = null;
+// The Orbit.js record for the user that is currently logged in.
 let this_user = null;
 
+// Our local copy of the list of online users.
 let online_users = {};
+// Our cached information about messages, peers, and users.
 let message_cache = new Cache();
 let peer_cache = new Cache();
 let user_cache = new Cache();
 
+/**
+ * A helper function to get the value of a cookie.
+ * @param {string} name The name of the cookie to get the value of.
+ * @returns {string|null} The value of the cookie, or null if the cookie does not exist.
+ */
 function get_cookie(name) {
 	let value = "; " + document.cookie;
 	let parts = value.split("; " + name + "=");
 	if (parts.length == 2) return parts.pop().split(";").shift();
+	return null;
 }
 
+/**
+ * Alerts the user that they are not logged in and redirects them to the login page.
+ */
 function login_fail() {
 	console.log("Did not find user_id cookie, not logging in.");
 	alert("You are not logged in. Please log in to use Omnichat.");
 	window.location.href = "/";
 }
 
+/**
+ * Logs the user in using the user_id cookie.
+ */
 function login() {
 	let user_id = get_cookie("user_id");
 
 	if (user_id) {
+		// Tell the server that we would like to log in with this user_id.
 		socket.emit("login", user_id)
 	}
 	else {
@@ -74,6 +98,12 @@ function login() {
 	}
 }
 
+/**
+ * Displays a prompt to the user which asks them to enter some values.
+ * @param {string} message The header of the prompt to display.
+ * @param {Array} prompt_items An array of objects containing the information for each prompt item.
+ * @returns {Promise<Object<string, string|boolean>|null>} A promise that resolves with an object containing the values entered by the user.
+ */
 function prompt(message, prompt_items) {
 	return new Promise((resolve, reject) => {
 		let prompt_div = document.createElement("div");
@@ -83,7 +113,7 @@ function prompt(message, prompt_items) {
 		prompt_header.innerText = message;
 		prompt_div.appendChild(prompt_header);
 
-		// Add inputs
+		// Add input fields to the "form" (really just a div)
 		for (let prompt_item of prompt_items) {
 			let input_container = document.createElement("div");
 			let input = document.createElement("input");
@@ -111,7 +141,7 @@ function prompt(message, prompt_items) {
 
 			prompt_div.appendChild(input_container);
 		}
-		// Add buttons
+		// Add buttons to the bottom of the form
 		let button_div = document.createElement("div");
 		button_div.classList.add("prompt-button-container");
 		let ok_button = document.createElement("button");
@@ -120,6 +150,7 @@ function prompt(message, prompt_items) {
 		ok_button.innerText = "Done";
 		ok_button.addEventListener("click", () => {
 			let results = {};
+
 			for (let prompt_item of prompt_items) {
 				if (prompt_item.type === "checkbox") {
 					results[prompt_item.id] = document.getElementById(prompt_item.id).checked;
@@ -129,6 +160,7 @@ function prompt(message, prompt_items) {
 				results[prompt_item.id] = document.getElementById(prompt_item.id).value;
 			}
 			prompt_div.remove();
+			// Give the caller the values entered by the user.
 			resolve(results);
 		});
 		let cancel_button = document.createElement("button");
@@ -137,6 +169,7 @@ function prompt(message, prompt_items) {
 		cancel_button.innerText = "Cancel";
 		cancel_button.addEventListener("click", () => {
 			prompt_div.remove();
+			// We get back no data if the user cancels.
 			resolve(null);
 		});
 
@@ -147,6 +180,11 @@ function prompt(message, prompt_items) {
 	});
 }
 
+/**
+ * Adds a new peer section divider to the channel list.
+ * @param {Object} peer The peer to add a section for. This is an Orbit.js record.
+ * @returns {HTMLElement} The peer section element that was created.
+ */
 function add_peer_section(peer) {
 	let peer_section = document.createElement("div");
 	peer_section.classList.add("peer");
@@ -165,6 +203,11 @@ function add_peer_section(peer) {
 	return peer_section;
 }
 
+/**
+ * Finds the peer section for the given peer or creates one if it doesn't exist.
+ * @param {Object} peer The peer to get the section for. This is an Orbit.js record.
+ * @returns {HTMLElement} The peer section element that was found or created.
+ */
 function get_peer_section_or_create_if_none(peer) {
 	let peer_section = document.querySelector(`.peer[peer-id="${peer.id}"]`);
 	if (!peer_section) {
@@ -174,6 +217,7 @@ function get_peer_section_or_create_if_none(peer) {
 	return peer_section;
 }
 
+// Add a listener for when the user sends a message using the message input.
 form.addEventListener("submit", (e) => {
 	e.preventDefault();
 	if (message_input.value && current_channel_id) {
@@ -186,9 +230,11 @@ form.addEventListener("submit", (e) => {
 	}
 });
 
+// Add a listener for when the user clicks the add channel button.
 add_channel_button.addEventListener("click", async (e) => {
 	e.preventDefault();
 	if (this_user && this_user.attributes.admin) {
+		// Prompt the user for the channel name and if it should be admin only or private.
 		let results = await prompt("New Channel", [
 			{
 				id: "channel-name",
@@ -215,6 +261,7 @@ add_channel_button.addEventListener("click", async (e) => {
 			let admin_only = results["channel-admin-only"];
 			let is_private = results["channel-private"];
 
+			// Send the channel creation request to the server.
 			socket.emit("channel_create", {
 				name: channel_name,
 				admin_only: admin_only,
@@ -224,9 +271,11 @@ add_channel_button.addEventListener("click", async (e) => {
 	}
 });
 
+// Add a listener for when the user clicks the add peer button.
 pair_request_button.addEventListener("click", async (e) => {
 	e.preventDefault();
 	if (this_user && this_user.attributes.admin) {
+		// Prompt the user for the peer address and port.
 		let results = await prompt("Add Peer", [
 			{
 				id: "peer-address",
@@ -246,6 +295,7 @@ pair_request_button.addEventListener("click", async (e) => {
 			let address = results["peer-address"];
 			let port = results["peer-port"];
 			if (address && port) {
+				// Send the pair request to the server.
 				socket.emit("send_pair_request", {
 					address,
 					port
@@ -255,6 +305,11 @@ pair_request_button.addEventListener("click", async (e) => {
 	}
 });
 
+/**
+ * Displays a pop-up alert at the bottom of the screen.
+ * @param {string} message The message to be displayed in the alert.
+ * @param {string} color The color of the alert. Defaults to red.
+ */
 function display_alert(message, color = "red") {
 	let alert_div = document.createElement("div");
 	alert_div.classList.add("error");
@@ -274,6 +329,7 @@ function display_alert(message, color = "red") {
 	alert_div.appendChild(close_button);
 	document.body.appendChild(alert_div);
 	
+	// Remove the alert after 5 seconds. Disabled, the user must manually close it.
 	/*setTimeout(() => {
 		if (alert_div.parentElement) {
 			alert_div.remove();
@@ -281,29 +337,34 @@ function display_alert(message, color = "red") {
 	}, 5000);*/
 }
 
-// Not required but useful for debugging
+// Not required but useful for debugging. Display a message once the socket connects.
 socket.on("connect", () => {
 	console.log("Connected to server.");
 });
 
+// Add a listener for when the server requests that we log in.
 socket.once("login_poke", () => {
 	login();
 });
 
+// Add a listener for if the server tells us that we couldn't log in.
 socket.on("login_fail", () => {
 	login_fail();
 });
 
+// Add a listener for if we are disconnected from the server for some reason.
 socket.on("disconnect", (reason) => {
 	console.log(`Disconnected from server. Reason: ${reason}`);
 	display_alert(`Lost connection to server. Reason: ${reason}`);
 });
 
+// Add a listener for if we get an error while the socket is connected or trying to connect.
 socket.on("connect_error", (err) => {
 	console.log(`Connection error: ${err}`);
 	display_alert(`Connection error: ${err}`);
 });
 
+// Add a listener for when the server tells us our own user object.
 socket.on("my_user", (user) => {
 	this_user = user;
 
@@ -316,8 +377,11 @@ socket.on("my_user", (user) => {
 	my_profile_id.innerText = this_user.id;
 });
 
+// Add a listener for when the server tells us about its own peer object.
 socket.on("this_server", (id) => {
 	get_peer_for_id(id).then((_) => {
+		// Create a peer section for this server.
+		// The local server is a peer too, it just happens to be the one we are directly connected to.
 		let peer_section = document.querySelector(`.peer[peer-id="${id}"]`);
 
 		if (peer_section) {
@@ -326,6 +390,7 @@ socket.on("this_server", (id) => {
 	});
 });
 
+// Add a listener for when the server tells us about another user logging in.
 socket.on("user_online", (user) => {
 	if (online_users[user.id]) {
 		return;
@@ -333,6 +398,8 @@ socket.on("user_online", (user) => {
 
 	online_users[user.id] = true;
 	user_cache.set(user.id, user);
+
+	// Create a user element for the user in the right-hand-side user list.
 	let user_element = document.createElement("div");
 	user_element.classList.add("user");
 	user_element.setAttribute("user-id", user.id);
@@ -340,6 +407,7 @@ socket.on("user_online", (user) => {
 	user_list.appendChild(user_element);
 });
 
+// Add a listener for when the server tells us about another user logging out.
 socket.on("user_offline", (user) => {
 	if (!online_users[user.id]) {
 		return;
@@ -350,15 +418,22 @@ socket.on("user_offline", (user) => {
 	user_list.removeChild(user_element);
 });
 
+// Add a listener for when the server tells us information about another user.
 socket.on("user_info", (user) => {
 	user_cache.set(user.id, user);
 });
 
+// Add a listener for when the server tells us about another peer.
 socket.on("peer_info", (peer) => {
 	peer_cache.set(peer.id, peer);
 	get_peer_section_or_create_if_none(peer);
 });
 
+/**
+ * Gets the username of a user from their ID.
+ * @param {string} user_id The ID of the user to get the username for.
+ * @returns {Promise<string>} A promise that resolves to the username of the user.
+ */
 function get_username_for_id(user_id) {
 	return new Promise((resolve, reject) => {
 		if (user_cache.has(user_id)) {
@@ -379,6 +454,11 @@ function get_username_for_id(user_id) {
 	});
 }
 
+/**
+ * Gets the peer object for a peer ID. The peer object is an Orbit.js record.
+ * @param {string} peer_id The ID of the peer to get the peer object for.
+ * @returns {Object} The peer object.
+ */
 function get_peer_for_id(peer_id) {
 	return new Promise((resolve, reject) => {
 		if (peer_cache.has(peer_id)) {
@@ -399,7 +479,15 @@ function get_peer_for_id(peer_id) {
 	});
 }
 
+/**
+ * Adds a message to the message pane.
+ * @param {string} user_id The ID of the sender of the message.
+ * @param {string} message_id The ID of the message itself.
+ * @param {string} content The text content of the message.
+ * @param {number} timestamp The time at which the message was sent.
+ */
 function display_message(user_id, message_id, content, timestamp) {
+	// Create the elements necessary to display the message.
 	let message = document.createElement("div");
 	message.classList.add("message");
 	message.setAttribute("message-id", message_id);
@@ -418,6 +506,8 @@ function display_message(user_id, message_id, content, timestamp) {
 	message_content.innerText = content;
 	message.appendChild(message_content);
 
+	// If the user is an admin (or the sender of the message) they should be
+	// able to delete the message. Add a delete icon to the message.
 	if (this_user.attributes.admin || user_id === this_user.id) {
 		let delete_icon = document.createElement("i");
 		delete_icon.classList.add("fas", "fa-times");
@@ -449,6 +539,7 @@ function display_message(user_id, message_id, content, timestamp) {
 	messages.scrollTo(0, messages.scrollHeight);
 }
 
+// Add a listener for when the server tells us about a new message.
 socket.on("msg_rcv", (message) => {
 	if (message_cache.has(message.id)) {
 		return;
@@ -460,12 +551,14 @@ socket.on("msg_rcv", (message) => {
 		return;
 	}
 
+	// Use display_message to add the message to the message pane.
 	const user_id = message.relationships.user.data.id;
 	const content = message.attributes.content;
 	const timestamp = message.attributes.timestamp;
 	display_message(user_id, message.id, content, timestamp);
 });
 
+// Add a listener for when the server tells us that a message has been deleted.
 socket.on("msg_del", (message) => {
 	if (!message_cache.has(message.id)) {
 		return;
@@ -477,13 +570,14 @@ socket.on("msg_del", (message) => {
 		return;
 	}
 
+	// Remove the message from the message pane.
 	let message_element = document.querySelector(`.message[message-id="${message.id}"]`);
-	
 	if (message_element) {
 		message_element.remove();
 	}
 });
 
+// Add a listener for when the server tells us that a new channel has been created.
 socket.on("channel_create", (channel_data) => {
 	let peer_section = get_peer_section_or_create_if_none(channel_data.relationships.peer.data);
 
@@ -522,15 +616,19 @@ socket.on("channel_create", (channel_data) => {
 	});
 	channel.appendChild(delete_icon);
 	
-	channel.addEventListener("mouseover", () => {
-		if (this_user.attributes.admin) {
-			delete_icon.style.display = "inline";
-		}
-	});
-
-	channel.addEventListener("mouseleave", () => {
-		delete_icon.style.display = "none";
-	});
+	// If the channel is local and the user is an admin, they should be able
+	// to delete the channel.
+	if (channel_data.relationships.peer.data.id == this_user.relationships.peer.data.id) {
+		channel.addEventListener("mouseover", () => {
+			if (this_user.attributes.admin) {
+				delete_icon.style.display = "inline";
+			}
+		});
+	
+		channel.addEventListener("mouseleave", () => {
+			delete_icon.style.display = "none";
+		});
+	}
 	
 	channel.addEventListener("click", () => {
 		message_input.disabled = false;
@@ -571,16 +669,18 @@ socket.on("channel_create", (channel_data) => {
 	});
 });
 
+// Add a listener for when the server tells us that a channel has been deleted.
 socket.on("channel_delete", (channel_id) => {
 	let channel = document.querySelector(`.channel[channel-id="${channel_id}"]`);
 	if (!channel) {
 		return;
 	}
 
+	// Remove the channel from the channel pane.
 	channel.remove();
 
+	// If the channel was selected, clear the messages pane.
 	if (channel_id == current_channel_id) {
-		// Clear messages pane
 		messages.innerHTML = "";
 		message_input.disabled = true;
 		send_button.disabled = true;
@@ -588,14 +688,24 @@ socket.on("channel_delete", (channel_id) => {
 	}
 
 	// Remove from message cache
-	if (message_cache.has(channel_id)) {
-		message_cache.delete(channel_id);
+	let messages_for_channel = message_cache.find_all((message) => {
+		return message.relationships.channel.data.id == channel_id;
+	});
+	for (let message of messages_for_channel) {
+		message_cache.delete(message.id);
 	}
 });
 
+// Add a listener for when the server tells us that we have received a pair request.
 socket.on("pair_request", (data) => {
+	// Only admins can pair this server with others.
+	if (!this_user.attributes.admin) {
+		return;
+	}
+
 	console.log("Received pairing request:", data);
 
+	// Create a prompt to ask the admin if they would like to accept the pairing request.
 	let pair_request = document.createElement("div");
 	pair_request.classList.add("prompt");
 
@@ -622,6 +732,7 @@ socket.on("pair_request", (data) => {
 	reject_button.classList.add("cancel");
 	reject_button.addEventListener("click", () => {
 		pair_request.remove();
+		// Tell the server that we rejected the pairing request.
 		socket.emit("respond_to_pair_request", {
 			id: data.id,
 			accepted: false
@@ -635,6 +746,7 @@ socket.on("pair_request", (data) => {
 	accept_button.classList.add("yes");
 	accept_button.addEventListener("click", () => {
 		pair_request.remove();
+		// Tell the server that we accepted the pairing request.
 		socket.emit("respond_to_pair_request", {
 			id: data.id,
 			accepted: true
