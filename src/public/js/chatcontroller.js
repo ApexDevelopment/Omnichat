@@ -57,15 +57,20 @@ function get_cookie(name) {
 	if (parts.length == 2) return parts.pop().split(";").shift();
 }
 
+function login_fail() {
+	console.log("Did not find user_id cookie, not logging in.");
+	alert("You are not logged in. Please log in to use Omnichat.");
+	window.location.href = "/";
+}
+
 function login() {
 	let user_id = get_cookie("user_id");
 
 	if (user_id) {
-		console.log(`Logging in as user ${user_id}`);
 		socket.emit("login", user_id)
 	}
 	else {
-		console.log("Did not find user_id cookie.");
+		login_fail();
 	}
 }
 
@@ -250,10 +255,11 @@ pair_request_button.addEventListener("click", async (e) => {
 	}
 });
 
-function display_error(message) {
-	let error_div = document.createElement("div");
-	error_div.classList.add("error");
-	error_div.innerText = message;
+function display_alert(message, color = "red") {
+	let alert_div = document.createElement("div");
+	alert_div.classList.add("error");
+	alert_div.style.backgroundColor = color;
+	alert_div.innerText = message;
 	// Add close button
 	let close_button = document.createElement("button");
 	close_button.innerText = "X";
@@ -263,19 +269,19 @@ function display_error(message) {
 	close_button.style.border = "none";
 	close_button.style.color = "white";
 	close_button.addEventListener("click", () => {
-		error_div.remove();
+		alert_div.remove();
 	});
-	error_div.appendChild(close_button);
-	document.body.appendChild(error_div);
+	alert_div.appendChild(close_button);
+	document.body.appendChild(alert_div);
 	
-	setTimeout(() => {
-		if (error_div.parentElement) {
-			error_div.remove();
+	/*setTimeout(() => {
+		if (alert_div.parentElement) {
+			alert_div.remove();
 		}
-	}, 5000);
+	}, 5000);*/
 }
 
-// TODO: User feedback on connect/disconnect/error
+// Not required but useful for debugging
 socket.on("connect", () => {
 	console.log("Connected to server.");
 });
@@ -284,14 +290,18 @@ socket.once("login_poke", () => {
 	login();
 });
 
+socket.on("login_fail", () => {
+	login_fail();
+});
+
 socket.on("disconnect", (reason) => {
 	console.log(`Disconnected from server. Reason: ${reason}`);
-	display_error(`Lost connection to server. Reason: ${reason}`);
+	display_alert(`Lost connection to server. Reason: ${reason}`);
 });
 
 socket.on("connect_error", (err) => {
 	console.log(`Connection error: ${err}`);
-	display_error(`Connection error: ${err}`);
+	display_alert(`Connection error: ${err}`);
 });
 
 socket.on("my_user", (user) => {
@@ -440,8 +450,6 @@ function display_message(user_id, message_id, content, timestamp) {
 }
 
 socket.on("msg_rcv", (message) => {
-	console.log("Received message:", message);
-
 	if (message_cache.has(message.id)) {
 		return;
 	}
@@ -459,8 +467,6 @@ socket.on("msg_rcv", (message) => {
 });
 
 socket.on("msg_del", (message) => {
-	console.log("Deleted message:", message);
-
 	if (!message_cache.has(message.id)) {
 		return;
 	}
@@ -479,8 +485,6 @@ socket.on("msg_del", (message) => {
 });
 
 socket.on("channel_create", (channel_data) => {
-	//console.log("Channel added: " + data.attributes.name + " (" + data.id + ")");
-	let peer_id = channel_data.relationships.peer.data.id;
 	let peer_section = get_peer_section_or_create_if_none(channel_data.relationships.peer.data);
 
 	let channel = document.createElement("div");
@@ -535,7 +539,6 @@ socket.on("channel_create", (channel_data) => {
 		// Mark old channel as not selected
 		if (current_channel_id) {
 			let current_channel = document.querySelector(`.channel[channel-id="${current_channel_id}"]`);
-			console.log(current_channel, current_channel_id);
 			if (current_channel) current_channel.classList.remove("selected");
 		}
 

@@ -234,12 +234,11 @@ html, body {
 	margin-bottom: 10px;
 }
 
-.error {
+.alert {
 	position: fixed;
 	bottom: 0;
 	left: 0;
 	width: 100%;
-	background-color: var(--error-color);
 	color: var(--text-color);
 	text-align: center;
 	padding: 10px;
