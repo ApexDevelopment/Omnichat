@@ -150,8 +150,8 @@ async function boot_omni(conf, port) {
 				omni.send_message(user_id, data.channel_id, data.message);
 			});
 
-			socket.on("msg_del", async(data) => {
-				let message = await omni.get_message(data.message_id);
+			socket.on("msg_del", async(message_id) => {
+				let message = await omni.get_message(message_id);
 				let channel = await omni.get_channel(message.relationships.channel.data.id);
 
 				if (channel.relationships.peer.data.id != omni.id()) {
@@ -159,7 +159,7 @@ async function boot_omni(conf, port) {
 				}
 				
 				if (user.attributes.admin || message.relationships.user.data.id == user_id) {
-					omni.delete_message(data.message_id);
+					omni.delete_message(message_id);
 				}
 			});
 	

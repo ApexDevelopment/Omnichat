@@ -1,7 +1,3 @@
-let socket = io();
-
-let current_channel_id = null;
-let online_users = {};
 const form = document.getElementById("message-form");
 const message_input = document.getElementById("message-input");
 const send_button = document.getElementById("send-button");
@@ -13,51 +9,47 @@ const pair_request_button = document.getElementById("pair-request-button");
 const my_profile_name = document.getElementById("my-profile-name");
 const my_profile_id = document.getElementById("my-profile-id");
 
+class Cache {
+	constructor() {
+		this.cache = {};
+	}
+
+	get(key) {
+		return this.cache[key];
+	}
+
+	find_all(filter) {
+		let results = [];
+		for (let key in this.cache) {
+			if (filter(this.cache[key])) {
+				results.push(this.cache[key]);
+			}
+		}
+		return results;
+	}
+
+	set(key, value) {
+		this.cache[key] = value;
+	}
+
+	has(key) {
+		return this.cache[key] !== undefined;
+	}
+
+	delete(key) {
+		delete this.cache[key];
+	}
+}
+
+let socket = io();
+
+let current_channel_id = null;
 let this_user = null;
-let peer_cache = {};
-let user_cache = {};
-let message_cache = {};
 
-function add_to_message_cache(message) {
-	const channel_id = message.relationships.channel.data.id;
-
-	if (!message_cache[channel_id]) {
-		message_cache[channel_id] = [];
-	}
-
-	message_cache[channel_id].push(message);
-}
-
-function does_message_cache_contain(message) {
-	const channel_id = message.relationships.channel.data.id;
-
-	if (!message_cache[channel_id]) {
-		return false;
-	}
-
-	for (let cached_message of message_cache[channel_id]) {
-		if (cached_message.id === message.id) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
-function remove_from_message_cache(message) {
-	const channel_id = message.relationships.channel.data.id;
-
-	if (!message_cache[channel_id]) {
-		return;
-	}
-
-	for (let i = 0; i < message_cache[channel_id].length; i++) {
-		if (message_cache[channel_id][i].id === message.id) {
-			message_cache[channel_id].splice(i, 1);
-			return;
-		}
-	}
-}
+let online_users = {};
+let message_cache = new Cache();
+let peer_cache = new Cache();
+let user_cache = new Cache();
 
 function get_cookie(name) {
 	let value = "; " + document.cookie;
@@ -330,7 +322,7 @@ socket.on("user_online", (user) => {
 	}
 
 	online_users[user.id] = true;
-	user_cache[user.id] = user;
+	user_cache.set(user.id, user);
 	let user_element = document.createElement("div");
 	user_element.classList.add("user");
 	user_element.setAttribute("user-id", user.id);
@@ -349,18 +341,18 @@ socket.on("user_offline", (user) => {
 });
 
 socket.on("user_info", (user) => {
-	user_cache[user.id] = user;
+	user_cache.set(user.id, user);
 });
 
 socket.on("peer_info", (peer) => {
-	peer_cache[peer.id] = peer;
+	peer_cache.set(peer.id, peer);
 	get_peer_section_or_create_if_none(peer);
 });
 
 function get_username_for_id(user_id) {
 	return new Promise((resolve, reject) => {
-		if (user_cache[user_id]) {
-			resolve(user_cache[user_id].attributes.username);
+		if (user_cache.has(user_id)) {
+			resolve(user_cache.get(user_id).attributes.username);
 		}
 		else {
 			socket.emit("get_user", user_id);
@@ -379,8 +371,8 @@ function get_username_for_id(user_id) {
 
 function get_peer_for_id(peer_id) {
 	return new Promise((resolve, reject) => {
-		if (peer_cache[peer_id]) {
-			resolve(peer_cache[peer_id]);
+		if (peer_cache.has(peer_id)) {
+			resolve(peer_cache.get(peer_id));
 		}
 		else {
 			socket.emit("get_peer", peer_id);
@@ -400,6 +392,7 @@ function get_peer_for_id(peer_id) {
 function display_message(user_id, message_id, content, timestamp) {
 	let message = document.createElement("div");
 	message.classList.add("message");
+	message.setAttribute("message-id", message_id);
 
 	let username = document.createElement("span");
 	username.classList.add("username");
@@ -425,16 +418,13 @@ function display_message(user_id, message_id, content, timestamp) {
 		delete_icon.style.marginLeft = "5px";
 		delete_icon.addEventListener("click", (e) => {
 			e.stopPropagation();
-			socket.emit("channel_delete", channel_data.id);
+			socket.emit("msg_del", message_id);
 		});
 		message.addEventListener("mouseover", (e) => {
 			delete_icon.style.display = "inline";
 		});
 		message.addEventListener("mouseout", (e) => {
 			delete_icon.style.display = "none";
-		});
-		message.addEventListener("click", (e) => {
-			socket.emit("msg_del", message_id);
 		});
 		message.appendChild(delete_icon);
 	}
@@ -452,11 +442,11 @@ function display_message(user_id, message_id, content, timestamp) {
 socket.on("msg_rcv", (message) => {
 	console.log("Received message:", message);
 
-	if (does_message_cache_contain(message)) {
+	if (message_cache.has(message.id)) {
 		return;
 	}
 
-	add_to_message_cache(message);
+	message_cache.set(message.id, message);
 
 	if (message.relationships.channel.data.id != current_channel_id) {
 		return;
@@ -471,18 +461,21 @@ socket.on("msg_rcv", (message) => {
 socket.on("msg_del", (message) => {
 	console.log("Deleted message:", message);
 
-	if (!does_message_cache_contain(message)) {
+	if (!message_cache.has(message.id)) {
 		return;
 	}
 
-	remove_from_message_cache(message);
+	message_cache.delete(message.id);
 
 	if (message.relationships.channel.data.id != current_channel_id) {
 		return;
 	}
 
 	let message_element = document.querySelector(`.message[message-id="${message.id}"]`);
-	messages.removeChild(message_element);
+	
+	if (message_element) {
+		message_element.remove();
+	}
 });
 
 socket.on("channel_create", (channel_data) => {
@@ -554,8 +547,12 @@ socket.on("channel_create", (channel_data) => {
 		messages.innerHTML = "";
 
 		// Display messages
-		if (message_cache[current_channel_id]) {
-			for (let message of message_cache[current_channel_id]) {
+		let cached_messages_for_channel = message_cache.find_all((message) => {
+			return message.relationships.channel.data.id == current_channel_id;
+		});
+
+		if (cached_messages_for_channel.length > 0) {
+			for (let message of cached_messages_for_channel) {
 				const user_id = message.relationships.user.data.id;
 				const content = message.attributes.content;
 				const timestamp = message.attributes.timestamp;
@@ -588,8 +585,8 @@ socket.on("channel_delete", (channel_id) => {
 	}
 
 	// Remove from message cache
-	if (message_cache[channel_id]) {
-		delete message_cache[channel_id];
+	if (message_cache.has(channel_id)) {
+		message_cache.delete(channel_id);
 	}
 });
 
